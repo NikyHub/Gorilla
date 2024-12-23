@@ -1,0 +1,25 @@
+{
+  "name": "cursor",
+  "version": "1.0.0",
+  "scripts": {
+    "stop": "pkill -f node"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "connect-sqlite3": "^0.9.15",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "mysql": "^2.18.1",
+    "mysql2": "^3.11.5",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
+  },
+  "main": "createUser.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}

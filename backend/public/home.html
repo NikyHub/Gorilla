@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>库存管理系统 - 主页</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>库存管理系统</h1>
+            <nav>
+                <ul>
+                    <li><a href="/index.html">库存管理</a></li>
+                    <li><a href="#" id="logout">退出登录</a></li>
+                </ul>
+            </nav>
+        </header>
+        <main>
+            <h2>欢迎使用库存管理系统</h2>
+            <div id="userInfo"></div>
+            <div class="quick-actions">
+                <a href="/index.html" class="btn-primary">进入库存管理</a>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // 检查登录状态
+        fetch('/api/auth/status', {
+            credentials: 'include'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.isLoggedIn) {
+                window.location.href = '/login.html';
+            } else {
+                document.getElementById('userInfo').textContent = 
+                    `当前用户: ${data.user.username} (${data.user.role})`;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            window.location.href = '/login.html';
+        });
+
+        // 退出登录
+        document.getElementById('logout').addEventListener('click', (e) => {
+            e.preventDefault();
+            fetch('/api/auth/logout', {
+                method: 'POST',
+                credentials: 'include'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = '/login.html';
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    </script>
+</body>
+</html> 
