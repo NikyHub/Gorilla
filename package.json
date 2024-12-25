@@ -2,6 +2,7 @@
   "name": "cursor",
   "version": "1.0.0",
   "scripts": {
+    "start": "node server.js",
     "stop": "pkill -f node"
   },
   "dependencies": {
