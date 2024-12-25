@@ -1,6 +1,6 @@
 const express = require('express');
 const path = require('path');
-const { initDatabase } = require('./config/database');
+const { initDatabase } = require('./config/database'); // 引入数据库模块
 const { router: authRouter, authenticateToken } = require('./routes/auth');
 const inventoryRouter = require('./routes/inventory');
 
@@ -14,23 +14,27 @@ app.get('/', (req, res) => {
     res.redirect('/login.html');
 });
 
-initDatabase().then(() => {
-    console.log('数据库初始化成功');
-    
-    app.use('/auth', authRouter);
-    app.use('/inventory', authenticateToken, inventoryRouter);
+// 初始化数据库并启动服务器
+initDatabase()
+    .then(() => {
+        console.log('数据库初始化成功');
 
-    const PORT = process.env.PORT || 3002;
-    app.listen(PORT, () => {
-        console.log('\n服务器启动成功！');
-        console.log('-------------------');
-        console.log(`访问地址: http://localhost:${PORT}`);
-        console.log('\n登录信息:');
-        console.log('管理员 - 用户名: admin  密码: admin123');
-        console.log('用户 - 用户名: user   密码: user123');
-        console.log('-------------------\n');
+        // 启用路由
+        app.use('/auth', authRouter);
+        app.use('/inventory', authenticateToken, inventoryRouter);
+
+        const PORT = process.env.PORT || 3002;
+        app.listen(PORT, () => {
+            console.log('\n服务器启动成功！');
+            console.log('-------------------');
+            console.log(`访问地址: http://localhost:${PORT}`);
+            console.log('\n登录信息:');
+            console.log('管理员 - 用户名: admin  密码: admin123');
+            console.log('用户 - 用户名: user   密码: user123');
+            console.log('-------------------\n');
+        });
+    })
+    .catch((error) => {
+        console.error('服务器启动失败:', error);
+        process.exit(1); // 如果数据库初始化失败，退出进程
     });
-}).catch(error => {
-    console.error('服务器启动失败:', error);
-    process.exit(1);
-}); 
