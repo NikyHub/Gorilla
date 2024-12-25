@@ -14,8 +14,8 @@
     "chart.js": "^3.7.0",
     "canvas": "^2.8.0",
     "moment": "^2.29.1",
-    "pdfkit": "^0.13.0"
-    "pg": "^8.11.1",
+    "pdfkit": "^0.13.0",
+    "pg": "^8.11.1"
   },
   "devDependencies": {
     "nodemon": "^2.0.15"
