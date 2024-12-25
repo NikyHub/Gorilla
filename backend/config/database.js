@@ -1,69 +1,45 @@
-const sqlite3 = require('sqlite3');
-const { open } = require('sqlite');
-let db = null;
+// config/database.js
 
+const { Pool } = require('pg'); // 引入 pg 模块
+require('dotenv').config(); // 加载环境变量
+
+// 从环境变量读取数据库连接字符串
+const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://czlgorilla:cfN9o8k3cWpqUgFhX2cRrSoHVPKTDAeA@dpg-ctm0s7jqf0us738b1qr0-a/gorilla_db';
+
+// 创建一个数据库连接池
+const pool = new Pool({
+    connectionString: DATABASE_URL,
+    ssl: {
+        rejectUnauthorized: false, // Render 上的 PostgreSQL 默认需要 SSL
+    },
+});
+
+// 初始化数据库
 async function initDatabase() {
     try {
-        db = await open({
-            filename: './database.sqlite',
-            driver: sqlite3.Database
-        });
+        // 测试连接是否正常
+        const client = await pool.connect();
+        console.log('成功连接到数据库:', DATABASE_URL);
+        client.release(); // 释放连接
 
-        await db.exec(`
-            CREATE TABLE IF NOT EXISTS items (
-                id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                warning_value INTEGER NOT NULL DEFAULT 0
-            )
+        // 示例：创建表（你可以根据需要修改表结构）
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS inventory (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                quantity INTEGER NOT NULL
+            );
         `);
 
-        await db.exec(`
-            CREATE TABLE IF NOT EXISTS operation_history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                item_id TEXT NOT NULL,
-                operation_type TEXT NOT NULL,
-                quantity INTEGER NOT NULL,
-                unit_price REAL,
-                operator TEXT NOT NULL,
-                remark TEXT,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (item_id) REFERENCES items (id)
-            )
-        `);
-
-        await db.exec(`
-            CREATE TABLE IF NOT EXISTS users (
-                username TEXT PRIMARY KEY,
-                password TEXT NOT NULL,
-                role TEXT NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-
-        const adminExists = await db.get('SELECT 1 FROM users WHERE username = ?', ['admin']);
-        if (!adminExists) {
-            await db.run('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', 
-                ['admin', 'admin123', 'admin']);
-            await db.run('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', 
-                ['user', 'user123', 'user']);
-        }
-
-        console.log('数据库初始化成功');
-        return db;
+        console.log('数据库表已初始化');
     } catch (error) {
         console.error('数据库初始化失败:', error);
-        throw error;
+        throw error; // 抛出错误，以便在 server.js 中捕获
     }
 }
 
-function getDatabase() {
-    if (!db) {
-        throw new Error('数据库未初始化');
-    }
-    return db;
-}
-
+// 导出数据库操作模块
 module.exports = {
     initDatabase,
-    getDatabase
-}; 
+    pool,
+};
