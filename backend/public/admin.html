@@ -46,31 +46,34 @@
                     </div>
                 </div>
             </div>
-
-          <!-- 添加商品表单部分 -->
-<div class="add-item">
-    <h3>添加商品</h3>
-    <div class="form-group">
-        <label for="itemId">商品编号</label>
-        <input type="text" id="itemId" required>
+<!-- 添加商品表单部分 -->
+<div class="col-md-4">
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">添加商品</h5>
+        </div>
+        <div class="card-body">
+            <form id="addItemForm">
+                <div class="mb-3">
+                    <label for="itemName" class="form-label">商品名称</label>
+                    <input type="text" class="form-control" id="itemName" required>
+                </div>
+                <div class="mb-3">
+                    <label for="itemPrice" class="form-label">价格</label>
+                    <input type="number" class="form-control" id="itemPrice" step="0.01" required>
+                </div>
+                <div class="mb-3">
+                    <label for="itemStock" class="form-label">初始库存</label>
+                    <input type="number" class="form-control" id="itemStock" required>
+                </div>
+                <div class="mb-3">
+                    <label for="warningValue" class="form-label">库存预警值</label>
+                    <input type="number" class="form-control" id="warningValue" required>
+                </div>
+                <button type="submit" class="btn btn-primary">添加商品</button>
+            </form>
+        </div>
     </div>
-    <div class="form-group">
-        <label for="itemName">商品名称</label>
-        <input type="text" id="itemName" required>
-    </div>
-    <div class="form-group">
-        <label for="itemPrice">价格</label>
-        <input type="number" id="itemPrice" step="0.01" required>
-    </div>
-    <div class="form-group">
-        <label for="itemStock">初始库存</label>
-        <input type="number" id="itemStock" required>
-    </div>
-    <div class="form-group">
-        <label for="warningValue">库存预警值</label>
-        <input type="number" id="warningValue" required>
-    </div>
-    <button onclick="addItem()">添加</button>
 </div>
 
         <!-- 操作记录 -->
