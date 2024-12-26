@@ -3,10 +3,11 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const { pool } = require('../config/database'); // 使用 pool
+const { pool } = require('../config/database');
 
 const SECRET_KEY = 'your-secret-key';
 
+// 登录路由
 router.post('/login', async (req, res) => {
     try {
         const { username, password } = req.body;
@@ -37,6 +38,4 @@ router.post('/login', async (req, res) => {
     }
 });
 
-module.exports = {
-    router,
-};
+module.exports = router; // 确保正确导出 router
