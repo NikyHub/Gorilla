@@ -37,6 +37,47 @@ router.post('/login', async (req, res) => {
         });
     }
 });
+// routes/auth.js
+
+// 添加用户（仅管理员可用）
+router.post('/users/add', authenticateToken, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: '无权限执行此操作'
+            });
+        }
+
+        const { username, password } = req.body;
+        
+        // 检查用户名是否已存在
+        const existingUser = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+        if (existingUser.rows.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: '用户名已存在'
+            });
+        }
+
+        // 添加新用户
+        await pool.query(
+            'INSERT INTO users (username, password, role) VALUES ($1, $2, $3)',
+            [username, password, 'user']
+        );
+
+        res.json({
+            success: true,
+            message: '用户添加成功'
+        });
+    } catch (error) {
+        console.error('添加用户失败:', error);
+        res.status(500).json({
+            success: false,
+            message: '添加用户失败'
+        });
+    }
+});
 
 // 获取用户列表（仅管理员可用）
 router.get('/users/list', authenticateToken, async (req, res) => {
