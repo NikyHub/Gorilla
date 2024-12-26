@@ -38,7 +38,8 @@ async function initDatabase() {
                 id SERIAL PRIMARY KEY,
                 name VARCHAR(255) NOT NULL,
                 price NUMERIC NOT NULL,
-                stock INTEGER NOT NULL
+                stock INTEGER NOT NULL,
+                warning_value INTEGER NOT NULL
             );
         `);
 
