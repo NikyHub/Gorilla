@@ -11,15 +11,6 @@ const pool = new Pool({
         rejectUnauthorized: false,
     },
 });
-// 测试完删除
-async function dropTable() {
-    try {
-        await pool.query('DROP TABLE IF EXISTS items;');
-        console.log('items 表已删除');
-    } catch (error) {
-        console.error('删除 items 表失败:', error);
-    }
-}
 
 async function initDatabase() {
     try {
