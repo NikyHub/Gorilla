@@ -32,6 +32,30 @@ async function initDatabase() {
             );
         `);
         
+         // 创建 items 表
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS items (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                price NUMERIC NOT NULL,
+                stock INTEGER NOT NULL
+            );
+        `);
+
+        // 创建 operation_history 表
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS operation_history (
+                id SERIAL PRIMARY KEY,
+                item_id INTEGER REFERENCES items(id),
+                operation_type VARCHAR(50) NOT NULL,
+                quantity INTEGER NOT NULL,
+                unit_price NUMERIC NOT NULL,
+                operator VARCHAR(255) NOT NULL,
+                remark TEXT,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        
         // 示例：创建表（你可以根据需要修改表结构）
         await pool.query(`
             CREATE TABLE IF NOT EXISTS inventory (
