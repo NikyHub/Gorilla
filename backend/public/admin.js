@@ -66,8 +66,16 @@ async function loadInventory() {
                 const name = item.name || '';
                 const currentStock = parseInt(item.current_stock || '0');
                 const warningValue = parseInt(item.warning_value || '0');
-                const price = parseFloat(item.price || '0');
-                const totalValue = parseFloat(item.total_value || '0');
+                
+                // 金额处理
+                let totalValueDisplay = '0.00';
+                if (item.total_value) {
+                    const value = Number(item.total_value);
+                    if (!isNaN(value)) {
+                        totalValueDisplay = value.toString().includes('.') ? 
+                            value.toFixed(2) : value + '.00';
+                    }
+                }
                 
                 const isLow = currentStock <= warningValue;
                 
@@ -77,7 +85,7 @@ async function loadInventory() {
                     <td>${name}</td>
                     <td class="${isLow ? 'text-danger fw-bold' : ''}">${currentStock}</td>
                     <td>${warningValue}</td>
-                    <td>¥ ${typeof totalValue === 'number' ? totalValue.toFixed(2) : '0.00'}</td>
+                    <td>¥ ${totalValueDisplay}</td>
                     <td>
                         <button class="btn btn-danger btn-sm delete-btn" data-id="${id}">删除</button>
                     </td>
