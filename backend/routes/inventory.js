@@ -61,6 +61,8 @@ router.get('/history', async (req, res) => {
     }
 });
 
+// routes/inventory.js
+
 // ... 其他代码保持不变 ...
 
 // 添加商品
@@ -68,20 +70,43 @@ router.post('/add', async (req, res) => {
     try {
         const { name, price, stock, warning_value } = req.body;
 
-        await pool.query(`
+        // 验证必填字段
+        if (!name || price === undefined || stock === undefined || warning_value === undefined) {
+            return res.status(400).json({
+                success: false,
+                message: '请填写所有必填字段（名称、价格、库存、预警值）'
+            });
+        }
+
+        // 确保数值类型正确
+        const numericPrice = parseFloat(price);
+        const numericStock = parseInt(stock);
+        const numericWarningValue = parseInt(warning_value);
+
+        // 验证数值有效性
+        if (isNaN(numericPrice) || isNaN(numericStock) || isNaN(numericWarningValue)) {
+            return res.status(400).json({
+                success: false,
+                message: '价格、库存和预警值必须是有效的数字'
+            });
+        }
+
+        const result = await pool.query(`
             INSERT INTO items (name, price, stock, warning_value)
             VALUES ($1, $2, $3, $4)
-        `, [name, price, stock, warning_value]);
+            RETURNING *
+        `, [name, numericPrice, numericStock, numericWarningValue]);
 
         res.json({
             success: true,
-            message: '商品添加成功'
+            message: '商品添加成功',
+            item: result.rows[0]
         });
     } catch (error) {
         console.error('添加商品失败:', error);
         res.status(500).json({
             success: false,
-            message: '添加商品失败'
+            message: '添加商品失败: ' + error.message
         });
     }
 });
