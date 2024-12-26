@@ -42,26 +42,55 @@ async function testConnection() {
 async function loadInventory() {
     try {
         const data = await fetchWithAuth('/inventory/list');
+        console.log('服务器返回的数据:', data); // 用于调试
+        
         const tbody = document.getElementById('inventoryList');
         tbody.innerHTML = '';
         
+        if (!data.inventory || !Array.isArray(data.inventory)) {
+            console.error('无效的数据格式:', data);
+            return;
+        }
+        
         data.inventory.forEach(item => {
+            // 确保数值类型正确
+            const total_value = parseFloat(item.total_value || 0);
+            const current_stock = parseInt(item.current_stock || 0);
+            const warning_value = parseInt(item.warning_value || 0);
+            const price = parseFloat(item.price || 0);
+            
+            console.log('处理的商品数据:', {
+                id: item.id,
+                name: item.name,
+                current_stock,
+                warning_value,
+                total_value,
+                price
+            });
+            
             const tr = document.createElement('tr');
-            const isLow = item.current_stock <= item.warning_value;
+            const isLow = current_stock <= warning_value;
+            
             tr.innerHTML = `
-                <td>${item.id}</td>
-                <td>${item.name}</td>
-                <td class="${isLow ? 'text-danger fw-bold' : ''}">${item.current_stock || 0}</td>
-                <td>${item.warning_value}</td>
-                <td>¥ ${(item.total_value || 0).toFixed(2)}</td>
+                <td>${item.id || ''}</td>
+                <td>${item.name || ''}</td>
+                <td class="${isLow ? 'text-danger fw-bold' : ''}">${current_stock}</td>
+                <td>${warning_value}</td>
+                <td>¥ ${total_value.toFixed(2)}</td>
                 <td>
-                    <button onclick="deleteProduct(${item.id})" class="btn btn-danger btn-sm">删除</button>
+                    <button class="btn btn-danger btn-sm delete-btn" data-id="${item.id}">删除</button>
                 </td>
             `;
+            
+            // 添加删除按钮的事件监听器
+            const deleteBtn = tr.querySelector('.delete-btn');
+            deleteBtn.addEventListener('click', () => deleteProduct(item.id));
+            
             tbody.appendChild(tr);
         });
     } catch (error) {
         console.error('加载库存列表失败:', error);
+        console.error('错误详情:', error.stack);
     }
 }
 
