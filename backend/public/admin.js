@@ -53,40 +53,41 @@ async function loadInventory() {
         }
         
         data.inventory.forEach(item => {
-            // 确保数值类型正确
-            const total_value = parseFloat(item.total_value || 0);
-            const current_stock = parseInt(item.current_stock || 0);
-            const warning_value = parseInt(item.warning_value || 0);
-            const price = parseFloat(item.price || 0);
-            
-            console.log('处理的商品数据:', {
-                id: item.id,
-                name: item.name,
-                current_stock,
-                warning_value,
-                total_value,
-                price
-            });
-            
-            const tr = document.createElement('tr');
-            const isLow = current_stock <= warning_value;
-            
-            tr.innerHTML = `
-                <td>${item.id || ''}</td>
-                <td>${item.name || ''}</td>
-                <td class="${isLow ? 'text-danger fw-bold' : ''}">${current_stock}</td>
-                <td>${warning_value}</td>
-                <td>¥ ${total_value.toFixed(2)}</td>
-                <td>
-                    <button class="btn btn-danger btn-sm delete-btn" data-id="${item.id}">删除</button>
-                </td>
-            `;
-            
-            // 添加删除按钮的事件监听器
-            const deleteBtn = tr.querySelector('.delete-btn');
-            deleteBtn.addEventListener('click', () => deleteProduct(item.id));
-            
-            tbody.appendChild(tr);
+            try {
+                // 数值转换和验证
+                let totalValue = 0;
+                try {
+                    totalValue = Number(item.total_value || 0);
+                    if (isNaN(totalValue)) totalValue = 0;
+                } catch {
+                    totalValue = 0;
+                }
+
+                const currentStock = parseInt(item.current_stock || 0) || 0;
+                const warningValue = parseInt(item.warning_value || 0) || 0;
+                
+                const tr = document.createElement('tr');
+                const isLow = currentStock <= warningValue;
+                
+                tr.innerHTML = `
+                    <td>${item.id || ''}</td>
+                    <td>${item.name || ''}</td>
+                    <td class="${isLow ? 'text-danger fw-bold' : ''}">${currentStock}</td>
+                    <td>${warningValue}</td>
+                    <td>¥ ${totalValue.toFixed(2)}</td>
+                    <td>
+                        <button class="btn btn-danger btn-sm delete-btn" data-id="${item.id}">删除</button>
+                    </td>
+                `;
+                
+                // 添加删除按钮的事件监听器
+                const deleteBtn = tr.querySelector('.delete-btn');
+                deleteBtn.addEventListener('click', () => deleteProduct(item.id));
+                
+                tbody.appendChild(tr);
+            } catch (itemError) {
+                console.error('处理单个商品数据时出错:', item, itemError);
+            }
         });
     } catch (error) {
         console.error('加载库存列表失败:', error);
