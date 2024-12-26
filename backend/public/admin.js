@@ -47,34 +47,42 @@ async function loadInventory() {
         const tbody = document.getElementById('inventoryList');
         tbody.innerHTML = '';
         
+        if (!data || !data.inventory) {
+            console.error('无效的数据格式:', data);
+            return;
+        }
+
         data.inventory.forEach(item => {
             const tr = document.createElement('tr');
             
-            // 安全地获取数值，不使用 toFixed
-            const currentStock = item.current_stock || 0;
-            const warningValue = item.warning_value || 0;
-            const totalValue = item.total_value || '0.00';
+            // 基础数据处理
+            const id = item.id || '';
+            const name = item.name || '';
+            const currentStock = parseInt(item.current_stock) || 0;
+            const warningValue = parseInt(item.warning_value) || 0;
             const isLow = currentStock <= warningValue;
             
             tr.innerHTML = `
-                <td>${item.id || ''}</td>
-                <td>${item.name || ''}</td>
+                <td>${id}</td>
+                <td>${name}</td>
                 <td class="${isLow ? 'text-danger fw-bold' : ''}">${currentStock}</td>
                 <td>${warningValue}</td>
-                <td>¥ ${totalValue}</td>
+                <td>¥ 0.00</td>
                 <td>
-                    <button class="btn btn-danger btn-sm delete-btn" data-id="${item.id}">删除</button>
+                    <button class="btn btn-danger btn-sm delete-btn" data-id="${id}">删除</button>
                 </td>
             `;
             
             const deleteBtn = tr.querySelector('.delete-btn');
-            deleteBtn.addEventListener('click', () => deleteProduct(item.id));
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', () => deleteProduct(id));
+            }
             
             tbody.appendChild(tr);
         });
     } catch (error) {
         console.error('加载库存列表失败:', error);
-        alert('加载库存列表失败，请刷新页面重试');
+        console.log('完整错误信息:', error);
     }
 }
 // 加载操作历史
