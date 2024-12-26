@@ -1,5 +1,8 @@
-// admin.js
+<!-- 删除这行 -->
+<!-- <script src="/js/admin.js"></script> -->
 
+<!-- 替换为内联的 JavaScript 代码 -->
+<script>
 // 统一的请求处理函数
 async function fetchWithAuth(url, options = {}) {
     const token = localStorage.getItem('token');
@@ -44,16 +47,15 @@ async function loadInventory() {
         
         data.inventory.forEach(item => {
             const tr = document.createElement('tr');
+            const isLow = item.current_stock <= item.warning_value;
             tr.innerHTML = `
                 <td>${item.id}</td>
                 <td>${item.name}</td>
-                <td>${item.current_stock || 0}</td>
+                <td class="${isLow ? 'text-danger fw-bold' : ''}">${item.current_stock || 0}</td>
                 <td>${item.warning_value}</td>
-                <td>${item.total_value || 0}</td>
+                <td>¥ ${(item.total_value || 0).toFixed(2)}</td>
                 <td>
-                    <button class="btn btn-danger btn-sm" onclick="deleteProduct(${item.id})">删除</button>
-                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#operateModal" 
-                            onclick="prepareOperation(${item.id}, '${item.name}')">操作</button>
+                    <button onclick="deleteProduct(${item.id})" class="btn btn-danger btn-sm">删除</button>
                 </td>
             `;
             tbody.appendChild(tr);
@@ -129,41 +131,6 @@ async function deleteProduct(id) {
     }
 }
 
-// 准备库存操作
-function prepareOperation(itemId, itemName) {
-    document.getElementById('operateItemId').value = itemId;
-    document.getElementById('operateItemName').textContent = itemName;
-}
-
-// 执行库存操作
-async function executeOperation(e) {
-    e.preventDefault();
-    
-    try {
-        const formData = new FormData(e.target);
-        const operationData = {
-            item_id: parseInt(formData.get('itemId')),
-            operation_type: formData.get('operationType'),
-            quantity: parseInt(formData.get('quantity')),
-            unit_price: parseFloat(formData.get('unitPrice')),
-            remark: formData.get('remark')
-        };
-
-        await fetchWithAuth('/inventory/operate', {
-            method: 'POST',
-            body: JSON.stringify(operationData)
-        });
-
-        alert('操作成功');
-        e.target.reset();
-        bootstrap.Modal.getInstance(document.getElementById('operateModal')).hide();
-        loadInventory();
-        loadOperationHistory();
-    } catch (error) {
-        alert('操作失败：' + error.message);
-    }
-}
-
 // 加载用户列表
 async function loadUsers() {
     try {
@@ -186,9 +153,7 @@ async function loadUsers() {
 }
 
 // 添加用户
-async function addUser(e) {
-    e.preventDefault();
-    
+async function addUser() {
     try {
         const username = document.getElementById('newUsername').value.trim();
         const password = document.getElementById('newPassword').value.trim();
@@ -213,9 +178,7 @@ async function addUser(e) {
 }
 
 // 修改密码
-async function changePassword(e) {
-    e.preventDefault();
-    
+async function changePassword() {
     try {
         const oldPassword = document.getElementById('changeOldPassword').value;
         const newPassword = document.getElementById('changeNewPassword').value;
@@ -316,21 +279,6 @@ document.addEventListener('DOMContentLoaded', () => {
         addItemForm.addEventListener('submit', addItem);
     }
 
-    const operateForm = document.getElementById('operateForm');
-    if (operateForm) {
-        operateForm.addEventListener('submit', executeOperation);
-    }
-
-    const addUserForm = document.getElementById('addUserForm');
-    if (addUserForm) {
-        addUserForm.addEventListener('submit', addUser);
-    }
-
-    const changePasswordForm = document.getElementById('changePasswordForm');
-    if (changePasswordForm) {
-        changePasswordForm.addEventListener('submit', changePassword);
-    }
-
     // 初始加载数据
     loadInventory();
     loadOperationHistory();
@@ -343,3 +291,4 @@ document.addEventListener('DOMContentLoaded', () => {
         loadUsers();
     }, 30000);
 });
+</script>
