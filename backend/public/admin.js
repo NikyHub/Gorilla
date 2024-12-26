@@ -27,7 +27,7 @@ async function stopServer() {
 // 加载商品列表
 async function loadProducts() {
     try {
-        const response = await fetch('/admin/products');
+        const response = await fetch('/inventory/list');
         const data = await response.json();
         const productList = document.getElementById('productList');
         
