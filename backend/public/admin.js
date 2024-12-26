@@ -50,28 +50,18 @@ async function loadInventory() {
         data.inventory.forEach(item => {
             const tr = document.createElement('tr');
             
-            // 安全地获取数值
-            const currentStock = Number(item.current_stock) || 0;
-            const warningValue = Number(item.warning_value) || 0;
+            // 安全地获取数值，不使用 toFixed
+            const currentStock = item.current_stock || 0;
+            const warningValue = item.warning_value || 0;
+            const totalValue = item.total_value || '0.00';
             const isLow = currentStock <= warningValue;
-            
-            // 格式化金额
-            let totalValueDisplay = '0.00';
-            if (item.total_value) {
-                try {
-                    const value = Number(item.total_value);
-                    totalValueDisplay = value.toFixed(2);
-                } catch {
-                    totalValueDisplay = '0.00';
-                }
-            }
             
             tr.innerHTML = `
                 <td>${item.id || ''}</td>
                 <td>${item.name || ''}</td>
                 <td class="${isLow ? 'text-danger fw-bold' : ''}">${currentStock}</td>
                 <td>${warningValue}</td>
-                <td>¥ ${totalValueDisplay}</td>
+                <td>¥ ${totalValue}</td>
                 <td>
                     <button class="btn btn-danger btn-sm delete-btn" data-id="${item.id}">删除</button>
                 </td>
