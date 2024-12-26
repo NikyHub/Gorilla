@@ -40,7 +40,11 @@ async function initDatabase() {
                 quantity INTEGER NOT NULL
             );
         `);
-
+        await pool.query(`
+       INSERT INTO users (username, password, role)
+       VALUES ('admin', 'admin123', 'admin')
+       ON CONFLICT (username) DO NOTHING;
+   `);
         console.log('数据库表已初始化');
     } catch (error) {
         console.error('数据库初始化失败:', error);
