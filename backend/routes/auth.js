@@ -37,6 +37,7 @@ router.post('/login', async (req, res) => {
         });
     }
 });
+
 // 获取用户列表（仅管理员可用）
 router.get('/users/list', authenticateToken, async (req, res) => {
     try {
@@ -47,19 +48,10 @@ router.get('/users/list', authenticateToken, async (req, res) => {
             });
         }
 
-        const db = getDatabase();
-        // 使用 datetime('now', 'localtime') 格式化时间
-        const users = await db.all(`
-            SELECT 
-                username, 
-                role, 
-                datetime(created_at, 'localtime') as created_at 
-            FROM users
-        `);
-
+        const result = await pool.query('SELECT username, role, created_at FROM users');
         res.json({
             success: true,
-            users
+            users: result.rows
         });
     } catch (error) {
         console.error('获取用户列表失败:', error);
@@ -75,10 +67,10 @@ router.post('/change-password', authenticateToken, async (req, res) => {
     try {
         const { oldPassword, newPassword } = req.body;
         const username = req.user.username;
-        const db = getDatabase();
 
-        // 验证旧密码
-        const user = await db.get('SELECT * FROM users WHERE username = ?', [username]);
+        const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+        const user = result.rows[0];
+
         if (!user || user.password !== oldPassword) {
             return res.status(400).json({
                 success: false,
@@ -86,8 +78,7 @@ router.post('/change-password', authenticateToken, async (req, res) => {
             });
         }
 
-        // 更新密码
-        await db.run('UPDATE users SET password = ? WHERE username = ?', [newPassword, username]);
+        await pool.query('UPDATE users SET password = $1 WHERE username = $2', [newPassword, username]);
 
         res.json({
             success: true,
@@ -125,4 +116,4 @@ function authenticateToken(req, res, next) {
     });
 }
 
-module.exports = router; // 确保正确导出 router
+module.exports = router;
