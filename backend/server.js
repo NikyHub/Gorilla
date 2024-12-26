@@ -3,7 +3,8 @@
 const express = require('express');
 const path = require('path');
 const { initDatabase } = require('./config/database');
-const authRouter = require('./routes/auth'); // 确保正确导入
+const authRouter = require('./routes/auth');
+const inventoryRouter = require('./routes/inventory'); // 导入 inventory 路由
 
 const app = express();
 
@@ -19,6 +20,7 @@ initDatabase()
         console.log('数据库初始化成功');
 
         app.use('/auth', authRouter);
+        app.use('/inventory', inventoryRouter); // 使用 inventory 路由
 
         const PORT = process.env.PORT || 3002;
         app.listen(PORT, () => {
