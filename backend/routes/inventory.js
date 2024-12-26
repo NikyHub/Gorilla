@@ -61,15 +61,17 @@ router.get('/history', async (req, res) => {
     }
 });
 
+// ... 其他代码保持不变 ...
+
 // 添加商品
 router.post('/add', async (req, res) => {
     try {
-        const { id, name, warning_value } = req.body;
+        const { name, price, stock, warning_value } = req.body;
 
         await pool.query(`
-            INSERT INTO items (id, name, warning_value)
-            VALUES ($1, $2, $3)
-        `, [id, name, warning_value]);
+            INSERT INTO items (name, price, stock, warning_value)
+            VALUES ($1, $2, $3, $4)
+        `, [name, price, stock, warning_value]);
 
         res.json({
             success: true,
@@ -83,6 +85,8 @@ router.post('/add', async (req, res) => {
         });
     }
 });
+
+// ... 其他代码保持不变 ...
 
 // 删除商品
 router.delete('/delete/:id', async (req, res) => {
