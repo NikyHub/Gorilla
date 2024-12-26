@@ -42,30 +42,41 @@ async function testConnection() {
 async function loadInventory() {
     try {
         const data = await fetchWithAuth('/inventory/list');
-        console.log('服务器返回的数据:', data); // 添加这行来查看数据
+        console.log('服务器返回的数据:', data); // 用于调试
         
         const tbody = document.getElementById('inventoryList');
         tbody.innerHTML = '';
         
         data.inventory.forEach(item => {
             const tr = document.createElement('tr');
-            const isLow = item.current_stock <= item.warning_value;
             
-            // 直接显示数值，不使用 toFixed
-            const totalValue = item.total_value ? item.total_value : '0.00';
+            // 安全地获取数值
+            const currentStock = Number(item.current_stock) || 0;
+            const warningValue = Number(item.warning_value) || 0;
+            const isLow = currentStock <= warningValue;
+            
+            // 格式化金额
+            let totalValueDisplay = '0.00';
+            if (item.total_value) {
+                try {
+                    const value = Number(item.total_value);
+                    totalValueDisplay = value.toFixed(2);
+                } catch {
+                    totalValueDisplay = '0.00';
+                }
+            }
             
             tr.innerHTML = `
                 <td>${item.id || ''}</td>
                 <td>${item.name || ''}</td>
-                <td class="${isLow ? 'text-danger fw-bold' : ''}">${item.current_stock || 0}</td>
-                <td>${item.warning_value || 0}</td>
-                <td>¥ ${totalValue}</td>
+                <td class="${isLow ? 'text-danger fw-bold' : ''}">${currentStock}</td>
+                <td>${warningValue}</td>
+                <td>¥ ${totalValueDisplay}</td>
                 <td>
                     <button class="btn btn-danger btn-sm delete-btn" data-id="${item.id}">删除</button>
                 </td>
             `;
             
-            // 添加删除按钮的事件监听器
             const deleteBtn = tr.querySelector('.delete-btn');
             deleteBtn.addEventListener('click', () => deleteProduct(item.id));
             
@@ -73,15 +84,9 @@ async function loadInventory() {
         });
     } catch (error) {
         console.error('加载库存列表失败:', error);
-        // 打印完整的错误信息
-        console.log('错误详情:', {
-            message: error.message,
-            stack: error.stack,
-            data: data
-        });
+        alert('加载库存列表失败，请刷新页面重试');
     }
 }
-
 // 加载操作历史
 async function loadOperationHistory() {
     try {
