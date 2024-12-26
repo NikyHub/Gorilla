@@ -1,6 +1,8 @@
+// routes/inventory.js
+
 const express = require('express');
 const router = express.Router();
-const { getDatabase } = require('../config/database');
+const { pool } = require('../config/database'); // 使用 pool
 
 // 测试路由
 router.get('/test', (req, res) => {
@@ -10,8 +12,7 @@ router.get('/test', (req, res) => {
 // 获取库存列表
 router.get('/list', async (req, res) => {
     try {
-        const db = getDatabase();
-        const inventory = await db.all(`
+        const result = await pool.query(`
             SELECT 
                 items.*,
                 COALESCE(SUM(CASE WHEN operation_type = 'in' THEN quantity ELSE -quantity END), 0) as current_stock,
@@ -23,7 +24,7 @@ router.get('/list', async (req, res) => {
 
         res.json({
             success: true,
-            inventory: inventory
+            inventory: result.rows
         });
     } catch (error) {
         console.error('获取库存列表失败:', error);
@@ -37,8 +38,7 @@ router.get('/list', async (req, res) => {
 // 获取操作历史
 router.get('/history', async (req, res) => {
     try {
-        const db = getDatabase();
-        const history = await db.all(`
+        const result = await pool.query(`
             SELECT 
                 operation_history.*,
                 items.name as item_name
@@ -50,7 +50,7 @@ router.get('/history', async (req, res) => {
 
         res.json({
             success: true,
-            history: history
+            history: result.rows
         });
     } catch (error) {
         console.error('获取操作历史失败:', error);
@@ -65,11 +65,10 @@ router.get('/history', async (req, res) => {
 router.post('/add', async (req, res) => {
     try {
         const { id, name, warning_value } = req.body;
-        const db = getDatabase();
 
-        await db.run(`
+        await pool.query(`
             INSERT INTO items (id, name, warning_value)
-            VALUES (?, ?, ?)
+            VALUES ($1, $2, $3)
         `, [id, name, warning_value]);
 
         res.json({
@@ -89,10 +88,9 @@ router.post('/add', async (req, res) => {
 router.delete('/delete/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const db = getDatabase();
 
-        await db.run('DELETE FROM items WHERE id = ?', [id]);
-        await db.run('DELETE FROM operation_history WHERE item_id = ?', [id]);
+        await pool.query('DELETE FROM items WHERE id = $1', [id]);
+        await pool.query('DELETE FROM operation_history WHERE item_id = $1', [id]);
 
         res.json({
             success: true,
@@ -112,17 +110,16 @@ router.post('/operate', async (req, res) => {
     try {
         const { item_id, operation_type, quantity, unit_price, remark } = req.body;
         const operator = req.user.username;
-        const db = getDatabase();
 
         // 检查库存是否足够（出库操作时）
         if (operation_type === 'out') {
-            const currentStock = await db.get(`
+            const currentStockResult = await pool.query(`
                 SELECT COALESCE(SUM(CASE WHEN operation_type = 'in' THEN quantity ELSE -quantity END), 0) as stock
                 FROM operation_history
-                WHERE item_id = ?
+                WHERE item_id = $1
             `, [item_id]);
 
-            if (currentStock.stock < quantity) {
+            if (currentStockResult.rows[0].stock < quantity) {
                 return res.status(400).json({
                     success: false,
                     message: '库存不足'
@@ -131,11 +128,9 @@ router.post('/operate', async (req, res) => {
         }
 
         // 使用当前时间戳
-        const now = new Date().toISOString();
-
-        await db.run(`
+        await pool.query(`
             INSERT INTO operation_history (item_id, operation_type, quantity, unit_price, operator, remark, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))
+            VALUES ($1, $2, $3, $4, $5, $6, NOW())
         `, [item_id, operation_type, quantity, unit_price, operator, remark]);
 
         res.json({
@@ -151,4 +146,4 @@ router.post('/operate', async (req, res) => {
     }
 });
 
-module.exports = router; 
+module.exports = router;
