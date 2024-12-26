@@ -1,3 +1,5 @@
+// admin.js
+
 // 测试连接
 async function testConnection() {
     try {
@@ -6,21 +8,6 @@ async function testConnection() {
         alert(data.message);
     } catch (error) {
         alert('连接失败：' + error.message);
-    }
-}
-
-// 停止服务器
-async function stopServer() {
-    if (confirm('确定要停止服务器吗？')) {
-        try {
-            const response = await fetch('/admin/stop-server', {
-                method: 'POST'
-            });
-            const data = await response.json();
-            alert(data.message);
-        } catch (error) {
-            alert('操作失败：' + error.message);
-        }
     }
 }
 
@@ -36,23 +23,26 @@ async function loadProducts() {
             <table>
                 <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>名称</th>
+                        <th>商品编号</th>
+                        <th>商品名称</th>
                         <th>价格</th>
-                        <th>库存</th>
+                        <th>当前库存</th>
+                        <th>库存预警值</th>
+                        <th>入库总额</th>
                         <th>操作</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${data.data.map(product => `
+                    ${data.inventory.map(item => `
                         <tr>
-                            <td>${product.id}</td>
-                            <td>${product.name}</td>
-                            <td>${product.price}</td>
-                            <td>${product.stock}</td>
+                            <td>${item.id}</td>
+                            <td>${item.name}</td>
+                            <td>${item.price}</td>
+                            <td>${item.current_stock || 0}</td>
+                            <td>${item.warning_value}</td>
+                            <td>${item.total_value || 0}</td>
                             <td>
-                                <button onclick="editProduct(${product.id})">编辑</button>
-                                <button onclick="deleteProduct(${product.id})">删除</button>
+                                <button onclick="deleteProduct(${item.id})">删除</button>
                             </td>
                         </tr>
                     `).join('')}
@@ -64,7 +54,73 @@ async function loadProducts() {
     }
 }
 
+// 添加商品
+async function addItem() {
+    try {
+        const name = document.getElementById('itemName').value;
+        const price = parseFloat(document.getElementById('itemPrice').value);
+        const stock = parseInt(document.getElementById('itemStock').value);
+        const warning_value = parseInt(document.getElementById('warningValue').value);
+
+        // 验证输入
+        if (!name || isNaN(price) || isNaN(stock) || isNaN(warning_value)) {
+            alert('请填写所有必填字段，并确保数值正确');
+            return;
+        }
+
+        const response = await fetch('/inventory/add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name,
+                price,
+                stock,
+                warning_value
+            })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            alert('添加成功');
+            // 清空输入框
+            document.getElementById('itemName').value = '';
+            document.getElementById('itemPrice').value = '';
+            document.getElementById('itemStock').value = '';
+            document.getElementById('warningValue').value = '';
+            // 刷新商品列表
+            loadProducts();
+        } else {
+            throw new Error(result.message);
+        }
+    } catch (error) {
+        console.error('添加失败:', error);
+        alert('添加失败: ' + error.message);
+    }
+}
+
+// 删除商品
+async function deleteProduct(id) {
+    if (confirm('确定要删除这个商品吗？')) {
+        try {
+            const response = await fetch(`/inventory/delete/${id}`, {
+                method: 'DELETE'
+            });
+            const result = await response.json();
+            if (result.success) {
+                alert('删除成功');
+                loadProducts(); // 刷新列表
+            } else {
+                throw new Error(result.message);
+            }
+        } catch (error) {
+            alert('删除失败：' + error.message);
+        }
+    }
+}
+
 // 页面加载完成后执行
 document.addEventListener('DOMContentLoaded', () => {
     loadProducts();
-}); 
+});
