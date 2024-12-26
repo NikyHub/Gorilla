@@ -46,35 +46,37 @@
                     </div>
                 </div>
             </div>
-<!-- 添加商品表单部分 -->
-<div class="col-md-4">
-    <div class="card">
-        <div class="card-header">
-            <h5 class="card-title mb-0">添加商品</h5>
+
+            <!-- 添加商品表单 -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">添加商品</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="addItemForm">
+                            <div class="mb-3">
+                                <label for="itemName" class="form-label">商品名称</label>
+                                <input type="text" class="form-control" id="itemName" name="itemName" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="itemPrice" class="form-label">价格</label>
+                                <input type="number" class="form-control" id="itemPrice" name="itemPrice" step="0.01" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="itemStock" class="form-label">初始库存</label>
+                                <input type="number" class="form-control" id="itemStock" name="itemStock" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="warningValue" class="form-label">库存预警值</label>
+                                <input type="number" class="form-control" id="warningValue" name="warningValue" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">添加商品</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <form id="addItemForm">
-                <div class="mb-3">
-                    <label for="itemName" class="form-label">商品名称</label>
-                    <input type="text" class="form-control" id="itemName" required>
-                </div>
-                <div class="mb-3">
-                    <label for="itemPrice" class="form-label">价格</label>
-                    <input type="number" class="form-control" id="itemPrice" step="0.01" required>
-                </div>
-                <div class="mb-3">
-                    <label for="itemStock" class="form-label">初始库存</label>
-                    <input type="number" class="form-control" id="itemStock" required>
-                </div>
-                <div class="mb-3">
-                    <label for="warningValue" class="form-label">库存预警值</label>
-                    <input type="number" class="form-control" id="warningValue" required>
-                </div>
-                <button type="submit" class="btn btn-primary">添加商品</button>
-            </form>
-        </div>
-    </div>
-</div>
 
         <!-- 操作记录 -->
         <div class="card mt-4">
@@ -100,7 +102,7 @@
             </div>
         </div>
 
-        <!-- 在操作记录表格后添加 -->
+        <!-- 用户管理 -->
         <div class="card mt-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">用户管理</h5>
@@ -183,335 +185,7 @@
         </div>
     </div>
 
-    <script>
-        // 在页面加载时检查角色
-        window.addEventListener('load', () => {
-            const token = localStorage.getItem('token');
-            const role = localStorage.getItem('role');
-            
-            if (!token) {
-                window.location.href = '/login.html';
-                return;
-            }
-            
-            if (role !== 'admin') {
-                alert('无权访问管理员页面');
-                window.location.href = '/index.html';
-            }
-        });
-
-        // 加载库存列表
-        async function loadInventory() {
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch('/inventory/list', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error('获取库存列表失败');
-                }
-
-                const data = await response.json();
-                const tbody = document.getElementById('inventoryList');
-                tbody.innerHTML = '';
-                
-                data.inventory.forEach(item => {
-                    const tr = document.createElement('tr');
-                    const isLow = item.current_stock <= item.warning_value;
-                    tr.innerHTML = `
-                        <td>${item.id}</td>
-                        <td>${item.name}</td>
-                        <td class="${isLow ? 'text-danger fw-bold' : ''}">${item.current_stock}</td>
-                        <td>${item.warning_value}</td>
-                        <td>¥ ${item.total_value.toFixed(2)}</td>
-                        <td>
-                            <button onclick="deleteItem('${item.id}')" class="btn btn-danger btn-sm">删除</button>
-                        </td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            } catch (error) {
-                console.error('加载库存失败:', error);
-            }
-        }
-
-        // 加载操作历史
-        async function loadOperationHistory() {
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch('/inventory/history', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error('获取操作历史失败');
-                }
-
-                const data = await response.json();
-                const tbody = document.getElementById('operationList');
-                tbody.innerHTML = '';
-                
-                data.history.forEach(operation => {
-                    const tr = document.createElement('tr');
-                    const date = new Date(operation.timestamp);
-                    const formattedTime = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
-                    
-                    tr.innerHTML = `
-                        <td>${formattedTime}</td>
-                        <td>${operation.item_name}</td>
-                        <td>${operation.operation_type === 'in' ? '入库' : '出库'}</td>
-                        <td>${operation.quantity}</td>
-                        <td>${operation.operator}</td>
-                        <td>${operation.remark || '-'}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            } catch (error) {
-                console.error('加载操作历史失败:', error);
-            }
-        }
-
-       <!-- 添加商品表单部分 -->
-<div class="col-md-4">
-    <div class="card">
-        <div class="card-header">
-            <h5 class="card-title mb-0">添加商品</h5>
-        </div>
-        <div class="card-body">
-            <form id="addItemForm">
-                <div class="mb-3">
-                    <label for="itemName" class="form-label">商品名称</label>
-                    <input type="text" class="form-control" id="itemName" name="itemName" required>
-                </div>
-                <div class="mb-3">
-                    <label for="itemPrice" class="form-label">价格</label>
-                    <input type="number" class="form-control" id="itemPrice" name="itemPrice" step="0.01" required>
-                </div>
-                <div class="mb-3">
-                    <label for="itemStock" class="form-label">初始库存</label>
-                    <input type="number" class="form-control" id="itemStock" name="itemStock" required>
-                </div>
-                <div class="mb-3">
-                    <label for="warningValue" class="form-label">库存预警值</label>
-                    <input type="number" class="form-control" id="warningValue" name="warningValue" required>
-                </div>
-                <button type="submit" class="btn btn-primary">添加商品</button>
-            </form>
-        </div>
-    </div>
-</div>
-
-        // 删除商品
-        async function deleteItem(itemId) {
-            if (!confirm('确定要删除这个商品吗？')) {
-                return;
-            }
-
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch(`/inventory/delete/${itemId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                const data = await response.json();
-                
-                if (data.success) {
-                    alert('删除成功');
-                    loadInventory();
-                } else {
-                    alert(data.message || '删除失败');
-                }
-            } catch (error) {
-                console.error('删除失败:', error);
-                alert('删除失败，请重试');
-            }
-        }
-
-        // 退出登录
-        function logout() {
-            localStorage.clear();
-            window.location.href = '/login.html';
-        }
-
-        // 导出数据为图片
-        async function exportToImage() {
-            try {
-                const exportDiv = document.createElement('div');
-                exportDiv.style.padding = '20px';
-                exportDiv.style.backgroundColor = 'white';
-                
-                const now = new Date();
-                const timestamp = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-                
-                // 添加标题和时间
-                exportDiv.innerHTML = `
-                    <div style="display: flex; align-items: center; margin-bottom: 20px;">
-                        <img src="/images/logo.webp" alt="Logo" style="height: 40px;">
-                        <h2 style="margin-left: 20px; margin-bottom: 0;">库存数据报表</h2>
-                    </div>
-                    <p style="margin-bottom: 20px;">导出时间：${timestamp}</p>
-                `;
-                
-                // 添加库存信息
-                const inventorySection = document.createElement('div');
-                inventorySection.innerHTML = '<h4 style="margin-bottom: 15px;">库存列表</h4>';
-                const inventoryTable = document.querySelector('.table').cloneNode(true);
-                // 移除最后一列（操作按钮）
-                inventoryTable.querySelectorAll('tr').forEach(row => {
-                    const lastCell = row.lastElementChild;
-                    if (lastCell) row.removeChild(lastCell);
-                });
-                inventorySection.appendChild(inventoryTable);
-                exportDiv.appendChild(inventorySection);
-
-                // 添加操作记录
-                const historySection = document.createElement('div');
-                historySection.style.marginTop = '30px';
-                historySection.innerHTML = '<h4 style="margin-bottom: 15px;">操作记录</h4>';
-                const historyTable = document.querySelectorAll('.table')[1].cloneNode(true);
-                historySection.appendChild(historyTable);
-                exportDiv.appendChild(historySection);
-                
-                document.body.appendChild(exportDiv);
-                
-                const canvas = await html2canvas(exportDiv, {
-                    scale: 2,
-                    backgroundColor: 'white',
-                    logging: false,
-                    width: exportDiv.offsetWidth,
-                    height: exportDiv.offsetHeight
-                });
-                
-                document.body.removeChild(exportDiv);
-                
-                const image = canvas.toDataURL("image/png");
-                const link = document.createElement('a');
-                link.download = `库存报表_${timestamp.replace(/[: ]/g, '_')}.png`;
-                link.href = image;
-                link.click();
-            } catch (error) {
-                console.error('导出失败:', error);
-                alert('导出失败，请重试');
-            }
-        }
-
-        // 加载用户列表
-        async function loadUsers() {
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch('/auth/users/list', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                const data = await response.json();
-                if (data.success) {
-                    const tbody = document.getElementById('usersList');
-                    tbody.innerHTML = '';
-                    
-                    data.users.forEach(user => {
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                            <td>${user.username}</td>
-                            <td>${user.role === 'admin' ? '管理员' : '普通用户'}</td>
-                            <td>${new Date(user.created_at).toLocaleString()}</td>
-                        `;
-                        tbody.appendChild(tr);
-                    });
-                }
-            } catch (error) {
-                console.error('加载用户列表失败:', error);
-            }
-        }
-
-        // 添加用户
-        async function addUser() {
-            const username = document.getElementById('newUsername').value;
-            const password = document.getElementById('newPassword').value;
-
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch('/auth/users/add', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ username, password })
-                });
-
-                const data = await response.json();
-                if (data.success) {
-                    alert('用户添加成功');
-                    document.getElementById('addUserForm').reset();
-                    bootstrap.Modal.getInstance(document.getElementById('addUserModal')).hide();
-                    loadUsers();
-                } else {
-                    alert(data.message || '添加失败');
-                }
-            } catch (error) {
-                console.error('添加用户失败:', error);
-                alert('添加用户失败，请重试');
-            }
-        }
-
-        // 修改密码
-        async function changePassword() {
-            const oldPassword = document.getElementById('changeOldPassword').value;
-            const newPassword = document.getElementById('changeNewPassword').value;
-            const confirmPassword = document.getElementById('changeConfirmPassword').value;
-
-            if (newPassword !== confirmPassword) {
-                alert('两次输入的新密码不一致');
-                return;
-            }
-
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch('/auth/change-password', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ oldPassword, newPassword })
-                });
-
-                const data = await response.json();
-                if (data.success) {
-                    alert('密码修改成功，请重新登录');
-                    document.getElementById('changePasswordForm').reset();
-                    bootstrap.Modal.getInstance(document.getElementById('changePasswordModal')).hide();
-                    logout();
-                } else {
-                    alert(data.message || '修改失败');
-                }
-            } catch (error) {
-                console.error('修改密码失败:', error);
-                alert('修改密码失败，请重试');
-            }
-        }
-
-        // 确保初始加载和定时刷新都正确执行
-        document.addEventListener('DOMContentLoaded', () => {
-            loadInventory();
-            loadOperationHistory();
-            loadUsers();
-            setInterval(() => {
-                loadInventory();
-                loadOperationHistory();
-                loadUsers();
-            }, 30000);
-        });
-    </script>
+    <!-- 引入 admin.js -->
+    <script src="/js/admin.js"></script>
 </body>
-</html> 
+</html>
