@@ -2,18 +2,16 @@
 
 const express = require('express');
 const router = express.Router();
-const { pool } = require('../config/database'); // 使用 pool
-const { authenticateToken } = require('../middleware/auth'); // 导入认证中间件
-// 为所有路由添加认证
-router.use(authenticateToken);
+const { pool } = require('../config/database');
+const { verifyToken } = require('../middleware/auth');
 
 // 测试路由
-router.get('/test', (req, res) => {
+router.get('/test', verifyToken, (req, res) => {
     res.json({ success: true, message: '连接成功' });
 });
 
 // 获取库存列表
-router.get('/list', async (req, res) => {
+router.get('/list', verifyToken, async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT 
@@ -39,7 +37,7 @@ router.get('/list', async (req, res) => {
 });
 
 // 获取操作历史
-router.get('/history', async (req, res) => {
+router.get('/history', verifyToken, async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT 
@@ -64,12 +62,8 @@ router.get('/history', async (req, res) => {
     }
 });
 
-// routes/inventory.js
-
-// ... 其他代码保持不变 ...
-
 // 添加商品
-router.post('/add', async (req, res) => {
+router.post('/add', verifyToken, async (req, res) => {
     try {
         const { name, price, stock, warning_value } = req.body;
 
@@ -114,10 +108,8 @@ router.post('/add', async (req, res) => {
     }
 });
 
-// ... 其他代码保持不变 ...
-
 // 删除商品
-router.delete('/delete/:id', async (req, res) => {
+router.delete('/delete/:id', verifyToken, async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -138,7 +130,7 @@ router.delete('/delete/:id', async (req, res) => {
 });
 
 // 操作库存
-router.post('/operate', async (req, res) => {
+router.post('/operate', verifyToken, async (req, res) => {
     try {
         const { item_id, operation_type, quantity, unit_price, remark } = req.body;
         const operator = req.user.username;
