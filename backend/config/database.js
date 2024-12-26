@@ -14,6 +14,15 @@ const pool = new Pool({
     },
 });
 
+// 删除
+async function dropItemsTable() {
+    try {
+        await pool.query('DROP TABLE IF EXISTS items;');
+        console.log('items 表已删除');
+    } catch (error) {
+        console.error('删除 items 表失败:', error);
+    }
+}
 // 初始化数据库
 async function initDatabase() {
     try {
@@ -21,6 +30,8 @@ async function initDatabase() {
         const client = await pool.connect();
         console.log('成功连接到数据库:', DATABASE_URL);
         client.release(); // 释放连接
+        // 删除表
+         await dropItemsTable();
         
           // 创建 users 表
         await pool.query(`
