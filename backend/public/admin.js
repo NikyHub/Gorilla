@@ -55,51 +55,45 @@ async function loadProducts() {
 }
 
  // 添加商品
-    async function addItem(e) {
-        if (e) e.preventDefault();
-        
-        try {
-            const name = document.getElementById('itemName').value;
-            const price = parseFloat(document.getElementById('itemPrice').value);
-            const stock = parseInt(document.getElementById('itemStock').value);
-            const warning_value = parseInt(document.getElementById('warningValue').value);
+async function addItem(e) {
+    e.preventDefault();
+    
+    try {
+        const formData = new FormData(e.target);
+        const name = formData.get('itemName');
+        const price = parseFloat(formData.get('itemPrice'));
+        const stock = parseInt(formData.get('itemStock'));
+        const warning_value = parseInt(formData.get('warningValue'));
 
-            // 验证输入
-            if (!name || isNaN(price) || isNaN(stock) || isNaN(warning_value)) {
-                alert('请填写所有必填字段，并确保数值正确');
-                return;
-            }
+        const token = localStorage.getItem('token');
+        const response = await fetch('/inventory/add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                name,
+                price,
+                stock,
+                warning_value
+            })
+        });
 
-            const token = localStorage.getItem('token');
-            const response = await fetch('/inventory/add', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    name,
-                    price,
-                    stock,
-                    warning_value
-                })
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                alert('添加成功');
-                // 清空表单
-                document.getElementById('addItemForm').reset();
-                // 刷新库存列表
-                loadInventory();
-            } else {
-                throw new Error(result.message);
-            }
-        } catch (error) {
-            console.error('添加失败:', error);
-            alert('添加失败: ' + error.message);
+        const result = await response.json();
+        if (result.success) {
+            alert('添加成功');
+            e.target.reset();
+            loadInventory();
+        } else {
+            throw new Error(result.message);
         }
+    } catch (error) {
+        console.error('添加失败:', error);
+        alert('添加失败: ' + error.message);
     }
+}
+
 // 删除商品
 async function deleteProduct(id) {
     if (confirm('确定要删除这个商品吗？')) {
@@ -119,45 +113,47 @@ async function deleteProduct(id) {
         }
     }
 }
- // 添加用户
-    async function addUser() {
-        try {
-            const username = document.getElementById('newUsername').value;
-            const password = document.getElementById('newPassword').value;
+// 添加用户
+async function addUser(e) {
+    if (e) e.preventDefault();
+    
+    try {
+        const username = document.getElementById('newUsername').value.trim();
+        const password = document.getElementById('newPassword').value.trim();
 
-            if (!username || !password) {
-                alert('请填写用户名和密码');
-                return;
-            }
-
-            const token = localStorage.getItem('token');
-            const response = await fetch('/auth/users/add', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    username,
-                    password,
-                    role: 'user' // 默认创建普通用户
-                })
-            });
-
-            const data = await response.json();
-            if (data.success) {
-                alert('用户添加成功');
-                document.getElementById('addUserForm').reset();
-                bootstrap.Modal.getInstance(document.getElementById('addUserModal')).hide();
-                loadUsers();
-            } else {
-                alert(data.message || '添加失败');
-            }
-        } catch (error) {
-            console.error('添加用户失败:', error);
-            alert('添加用户失败，请重试');
+        if (!username || !password) {
+            alert('请填写用户名和密码');
+            return;
         }
+
+        const token = localStorage.getItem('token');
+        const response = await fetch('/auth/users/add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                username,
+                password
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            alert('用户添加成功');
+            document.getElementById('addUserForm').reset();
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
+            if (modal) modal.hide();
+            loadUsers();
+        } else {
+            throw new Error(data.message);
+        }
+    } catch (error) {
+        console.error('添加用户失败:', error);
+        alert('添加用户失败: ' + error.message);
     }
+}
   // 页面加载完成后的初始化
     document.addEventListener('DOMContentLoaded', () => {
         // 添加商品表单提交事件
