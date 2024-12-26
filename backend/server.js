@@ -1,27 +1,24 @@
+// server.js
+
 const express = require('express');
 const path = require('path');
-const { initDatabase } = require('./config/database'); // 引入数据库模块
-const { router: authRouter, authenticateToken } = require('./routes/auth');
-const inventoryRouter = require('./routes/inventory');
+const { initDatabase } = require('./config/database');
+const authRouter = require('./routes/auth'); // 确保正确导入
 
 const app = express();
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 添加根路由重定向到登录页面
 app.get('/', (req, res) => {
     res.redirect('/login.html');
 });
 
-// 初始化数据库并启动服务器
 initDatabase()
     .then(() => {
         console.log('数据库初始化成功');
 
-        // 启用路由
         app.use('/auth', authRouter);
-        app.use('/inventory', authenticateToken, inventoryRouter);
 
         const PORT = process.env.PORT || 3002;
         app.listen(PORT, () => {
@@ -36,5 +33,5 @@ initDatabase()
     })
     .catch((error) => {
         console.error('服务器启动失败:', error);
-        process.exit(1); // 如果数据库初始化失败，退出进程
+        process.exit(1);
     });
