@@ -3,6 +3,9 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database'); // 使用 pool
+const { authenticateToken } = require('../middleware/auth'); // 导入认证中间件
+// 为所有路由添加认证
+router.use(authenticateToken);
 
 // 测试路由
 router.get('/test', (req, res) => {
