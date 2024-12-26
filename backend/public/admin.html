@@ -276,43 +276,35 @@
             }
         }
 
-        // 添加商品
-        document.getElementById('addItemForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const itemId = document.getElementById('itemId').value;
-            const itemName = document.getElementById('itemName').value;
-            const warningValue = document.getElementById('warningValue').value;
-
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch('/inventory/add', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        id: itemId,
-                        name: itemName,
-                        warning_value: warningValue
-                    })
-                });
-
-                const data = await response.json();
-                
-                if (data.success) {
-                    alert('添加成功');
-                    this.reset();
-                    loadInventory();
-                } else {
-                    alert(data.message || '添加失败');
-                }
-            } catch (error) {
-                console.error('添加失败:', error);
-                alert('添加失败，请重试');
-            }
-        });
+       <!-- 添加商品表单部分 -->
+<div class="col-md-4">
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">添加商品</h5>
+        </div>
+        <div class="card-body">
+            <form id="addItemForm">
+                <div class="mb-3">
+                    <label for="itemName" class="form-label">商品名称</label>
+                    <input type="text" class="form-control" id="itemName" name="itemName" required>
+                </div>
+                <div class="mb-3">
+                    <label for="itemPrice" class="form-label">价格</label>
+                    <input type="number" class="form-control" id="itemPrice" name="itemPrice" step="0.01" required>
+                </div>
+                <div class="mb-3">
+                    <label for="itemStock" class="form-label">初始库存</label>
+                    <input type="number" class="form-control" id="itemStock" name="itemStock" required>
+                </div>
+                <div class="mb-3">
+                    <label for="warningValue" class="form-label">库存预警值</label>
+                    <input type="number" class="form-control" id="warningValue" name="warningValue" required>
+                </div>
+                <button type="submit" class="btn btn-primary">添加商品</button>
+            </form>
+        </div>
+    </div>
+</div>
 
         // 删除商品
         async function deleteItem(itemId) {
