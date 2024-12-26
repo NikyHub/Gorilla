@@ -21,7 +21,17 @@ async function initDatabase() {
         const client = await pool.connect();
         console.log('成功连接到数据库:', DATABASE_URL);
         client.release(); // 释放连接
-
+        
+          // 创建 users 表
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS users (
+                username VARCHAR(255) PRIMARY KEY,
+                password VARCHAR(255) NOT NULL,
+                role VARCHAR(50) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        
         // 示例：创建表（你可以根据需要修改表结构）
         await pool.query(`
             CREATE TABLE IF NOT EXISTS inventory (
