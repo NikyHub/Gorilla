@@ -351,106 +351,82 @@ async function loadInventory() {
         }
 
       // 修改页面初始化部分
-document.addEventListener('DOMContentLoaded', function() {
-    // ... 其他初始化代码保持不变 ...
+      // 页面初始化
+        
+   document.addEventListener('DOMContentLoaded', function() {
+    // 检查登录状态
+    if (!checkAuth()) return;
 
-    if (checkAuth()) {
-        // ... 用户角色和用户名显示代码保持不变 ...
+    // 检查用户角色
+    const role = localStorage.getItem('role');
+    if (role === 'admin') {
+        window.location.href = '/admin.html';
+        return;
+    }
 
-        // 初始化表单提交
-        const operationForm = document.getElementById('operationForm');
-        if (operationForm) {
-            operationForm.addEventListener('submit', submitOperation);
+    // 显示用户名
+    const username = localStorage.getItem('username');
+    if (username) {
+        const userInfo = document.getElementById('userInfo');
+        if (userInfo) {
+            userInfo.textContent = `用户: ${username}`;
         }
+    }
 
-        // 初始化退出按钮
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', logout);
-        }
-
-        // 首次加载数据
-        loadInventory();
-
-        // 使用变量跟踪最后一次操作时间
-        let lastOperationTime = Date.now();
-
-        // 定义刷新函数
-        const refresh = async () => {
-            const now = Date.now();
-            // 如果距离上次操作超过5秒，才进行刷新
-            if (now - lastOperationTime >= 5000) {
-                await loadInventory();
+    // 初始化操作类型变化监听
+    const operationType = document.getElementById('operationType');
+    if (operationType) {
+        operationType.addEventListener('change', function() {
+            const unitPriceGroup = document.getElementById('unitPriceGroup');
+            const unitPriceInput = document.getElementById('unitPrice');
+            
+            if (this.value === 'in') {
+                unitPriceGroup.style.display = 'block';
+                unitPriceInput.required = true;
+            } else {
+                unitPriceGroup.style.display = 'none';
+                unitPriceInput.required = false;
+                unitPriceInput.value = '';
             }
-        };
+        });
+    }
 
-        // 设置定时刷新，但间隔更长
-        setInterval(refresh, 10000); // 改为10秒刷新一次
+    // 初始化表单提交
+    const operationForm = document.getElementById('operationForm');
+    if (operationForm) {
+        operationForm.addEventListener('submit', submitOperation);
+    }
 
-        // 在表单提交时更新最后操作时间
+    // 初始化退出按钮
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', logout);
+    }
+
+    // 首次加载数据
+    loadInventory();
+
+    // 设置定时刷新
+    let lastOperationTime = Date.now();
+    const refreshInterval = setInterval(() => {
+        const now = Date.now();
+        if (now - lastOperationTime >= 10000) { // 10秒间隔
+            loadInventory();
+        }
+    }, 10000);
+
+    // 在表单提交时更新最后操作时间
+    if (operationForm) {
         operationForm.addEventListener('submit', () => {
             lastOperationTime = Date.now();
         });
     }
+
+    // 页面卸载时清理
+    window.addEventListener('beforeunload', () => {
+        clearInterval(refreshInterval);
+    });
 });
-
-            // 检查登录状态并加载数据
-            if (checkAuth()) {
-                const role = localStorage.getItem('role');
-                if (role === 'admin') {
-                    window.location.href = '/admin.html';
-                    return;
-                }
-
-                const username = localStorage.getItem('username');
-                if (username) {
-                    const userInfo = document.getElementById('userInfo');
-                    if (userInfo) {
-                        userInfo.textContent = `用户: ${username}`;
-                    }
-                }
-
-                let isOperating = false;  // 添加操作状态标志
-                let refreshTimeout = null;
-
-                // 修改加载函数
-                async function refreshInventory() {
-                    if (!isOperating) {
-                        await loadInventory();
-                    }
-                    // 设置下一次刷新
-                    refreshTimeout = setTimeout(refreshInventory, 5000);
-                }
-
-                // 初始化表单提交
-                const operationForm = document.getElementById('operationForm');
-                if (operationForm) {
-                    operationForm.addEventListener('submit', async (e) => {
-                        isOperating = true;  // 设置操作状态
-                        clearTimeout(refreshTimeout);  // 清除当前的刷新计时器
-                        
-                        await submitOperation(e);
-                        
-                        isOperating = false;  // 重置操作状态
-                        refreshTimeout = setTimeout(refreshInventory, 5000);  // 重新开始刷新计时
-                    });
-                }
-
-                // 初始化退出按钮
-                const logoutBtn = document.getElementById('logoutBtn');
-                if (logoutBtn) {
-                    logoutBtn.addEventListener('click', logout);
-                }
-
-                // 开始初始刷新循环
-                refreshInventory();
-
-                // 页面卸载时清理
-                window.addEventListener('beforeunload', () => {
-                    clearTimeout(refreshTimeout);
-                });
-            }
-        });
     </script>
 </body>
 </html>
