@@ -5,58 +5,72 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>库存管理系统</title>
     <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
-    <!-- 添加加载状态的样式 -->
-    <style>
-        .loading {
-            opacity: 0.5;
-            pointer-events: none;
-        }
-        .loading-spinner {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-        .loading .loading-spinner {
-            display: block;
-        }
-    </style>
 </head>
 <body>
-    <!-- 添加加载状态指示器 -->
-    <div class="loading-spinner">
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">加载中...</span>
-        </div>
-    </div>
-
     <div class="container mt-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <img src="/images/logo.webp" alt="高力乐 Logo" style="height: 50px;">
+            <img src="/images/logo.webp" alt="Logo" style="height: 50px;">
             <div>
                 <span id="userInfo" class="me-3"></span>
                 <button class="btn btn-info me-2" data-bs-toggle="modal" data-bs-target="#userChangePasswordModal">修改密码</button>
-                <button onclick="logout()" class="btn btn-danger">退出登录</button>
+                <button id="logoutBtn" class="btn btn-danger">退出登录</button>
             </div>
         </div>
 
-        <!-- 其他 HTML 部分保持不变 -->
-        <!-- ... 中间的 HTML 代码保持不变 ... -->
+        <div class="row">
+            <!-- 库存列表 -->
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">库存列表</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>商品编号</th>
+                                        <th>商品名称</th>
+                                        <th>当前库存</th>
+                                        <th>库存预警</th>
+                                        <th>入库总额</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inventoryList"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
+            <!-- 操作面板部分保持不变 -->
+            <!-- ... -->
+        </div>
     </div>
 
     <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
-        // 添加加载状态控制
-        function setLoading(isLoading) {
-            document.body.classList.toggle('loading', isLoading);
+        // 检查登录状态
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/login.html';
+                return false;
+            }
+            return true;
         }
 
-        // 更新库存表格 - 修改后的版本
+        // 更新库存表格
         function updateInventoryTable(inventory) {
             const tbody = document.getElementById('inventoryList');
+            if (!tbody) return;
+            
             tbody.innerHTML = '';
+            
+            if (!Array.isArray(inventory)) {
+                console.error('无效的库存数据');
+                return;
+            }
             
             inventory.forEach(item => {
                 const tr = document.createElement('tr');
@@ -64,7 +78,7 @@
                 
                 // 处理金额显示
                 let totalValueDisplay = '0.00';
-                if (item.total_value !== null && item.total_value !== undefined) {
+                if (item.total_value != null) {
                     const value = Number(item.total_value);
                     if (!isNaN(value)) {
                         totalValueDisplay = value.toString();
@@ -90,33 +104,12 @@
             });
         }
 
-        // 更新商品选择下拉框 - 添加错误处理
-        function updateItemSelect(inventory) {
-            const select = document.getElementById('itemSelect');
-            if (!select) return;
-            
-            select.innerHTML = '<option value="">请选择商品</option>';
-            
-            if (Array.isArray(inventory)) {
-                inventory.forEach(item => {
-                    const option = document.createElement('option');
-                    option.value = item.id || '';
-                    option.textContent = `${item.name || ''} (库存: ${item.current_stock || 0})`;
-                    select.appendChild(option);
-                });
-            }
-        }
-
-        // 加载库存列表 - 改进的版本
+        // 加载库存列表
         async function loadInventory() {
-            setLoading(true);
+            if (!checkAuth()) return;
+
             try {
                 const token = localStorage.getItem('token');
-                if (!token) {
-                    window.location.href = '/login.html';
-                    return;
-                }
-
                 const response = await fetch('/inventory/list', {
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -124,57 +117,65 @@
                 });
 
                 if (!response.ok) {
-                    const data = await response.json();
-                    throw new Error(data.message || '获取库存列表失败');
+                    throw new Error('获取库存列表失败');
                 }
 
                 const data = await response.json();
-                if (!data || !Array.isArray(data.inventory)) {
-                    throw new Error('无效的数据格式');
+                if (data && data.inventory) {
+                    updateInventoryTable(data.inventory);
+                    updateItemSelect(data.inventory);
                 }
-
-                updateInventoryTable(data.inventory);
-                updateItemSelect(data.inventory);
             } catch (error) {
                 console.error('加载库存失败:', error);
-                if (error.message.includes('认证') || error.message.includes('token')) {
-                    window.location.href = '/login.html';
-                }
-            } finally {
-                setLoading(false);
             }
         }
 
-        // 其他函数保持不变
-        // ... 其他函数代码保持不变 ...
+        // 更新商品选择下拉框
+        function updateItemSelect(inventory) {
+            const select = document.getElementById('itemSelect');
+            if (!select) return;
+            
+            select.innerHTML = '<option value="">请选择商品</option>';
+            
+            inventory.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = `${item.name} (库存: ${item.current_stock})`;
+                select.appendChild(option);
+            });
+        }
 
-        // 修改定时刷新间隔
-        loadInventory(); // 初始加载
-        setInterval(loadInventory, 5000); // 每5秒刷新一次
+        // 退出登录
+        function logout() {
+            localStorage.clear();
+            window.location.href = '/login.html';
+        }
 
-        // 页面加载完成后的初始化
+        // 页面初始化
         document.addEventListener('DOMContentLoaded', () => {
-            const token = localStorage.getItem('token');
-            const role = localStorage.getItem('role');
-            
-            if (!token) {
-                window.location.href = '/login.html';
-                return;
-            }
-            
-            if (role === 'admin') {
-                window.location.href = '/admin.html';
-                return;
-            }
+            // 检查登录状态
+            if (!checkAuth()) return;
 
             // 显示用户名
             const username = localStorage.getItem('username');
             if (username) {
-                document.getElementById('userInfo').textContent = `用户: ${username}`;
+                const userInfo = document.getElementById('userInfo');
+                if (userInfo) {
+                    userInfo.textContent = `用户: ${username}`;
+                }
             }
 
-            // 初始加载数据
+            // 添加退出登录事件监听
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', logout);
+            }
+
+            // 加载初始数据
             loadInventory();
+
+            // 设置定时刷新
+            setInterval(loadInventory, 5000);
         });
     </script>
 </body>
