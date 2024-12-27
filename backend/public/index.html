@@ -43,12 +43,78 @@
                 </div>
             </div>
 
-            <!-- 操作面板部分保持不变 -->
-            <!-- ... -->
+            <!-- 操作面板 -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">操作面板</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="operationForm">
+                            <div class="mb-3">
+                                <label class="form-label">选择商品</label>
+                                <select class="form-select" id="itemSelect" required></select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">操作类型</label>
+                                <select class="form-select" id="operationType" required>
+                                    <option value="in">入库</option>
+                                    <option value="out">出库</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">数量</label>
+                                <input type="number" class="form-control" id="quantity" required min="1">
+                            </div>
+                            <div class="mb-3" id="unitPriceGroup">
+                                <label class="form-label">单价 (元)</label>
+                                <input type="number" class="form-control" id="unitPrice" step="0.01" min="0">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">备注</label>
+                                <input type="text" class="form-control" id="remark">
+                            </div>
+                            <button type="submit" class="btn btn-primary">提交</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <!-- 修改密码模态框 -->
+    <div class="modal fade" id="userChangePasswordModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">修改密码</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="userChangePasswordForm">
+                        <div class="mb-3">
+                            <label class="form-label">原密码</label>
+                            <input type="password" class="form-control" id="userOldPassword" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">新密码</label>
+                            <input type="password" class="form-control" id="userNewPassword" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">确认新密码</label>
+                            <input type="password" class="form-control" id="userConfirmPassword" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="changeUserPassword()">确认修改</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
         // 检查登录状态
         function checkAuth() {
@@ -76,7 +142,6 @@
                 const tr = document.createElement('tr');
                 const isLow = Number(item.current_stock) <= Number(item.warning_value);
                 
-                // 处理金额显示
                 let totalValueDisplay = '0.00';
                 if (item.total_value != null) {
                     const value = Number(item.total_value);
@@ -145,16 +210,116 @@
             });
         }
 
+        // 提交操作
+        async function submitOperation(e) {
+            e.preventDefault();
+            
+            try {
+                const token = localStorage.getItem('token');
+                const itemId = document.getElementById('itemSelect').value;
+                const operationType = document.getElementById('operationType').value;
+                const quantity = document.getElementById('quantity').value;
+                const unitPrice = document.getElementById('unitPrice').value;
+                const remark = document.getElementById('remark').value;
+
+                const response = await fetch('/inventory/operate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        item_id: itemId,
+                        operation_type: operationType,
+                        quantity: parseInt(quantity),
+                        unit_price: operationType === 'in' ? parseFloat(unitPrice) : null,
+                        remark
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert('操作成功');
+                    document.getElementById('operationForm').reset();
+                    loadInventory();
+                } else {
+                    alert(data.message || '操作失败');
+                }
+            } catch (error) {
+                console.error('操作失败:', error);
+                alert('操作失败，请重试');
+            }
+        }
+
+        // 修改密码
+        async function changeUserPassword() {
+            const oldPassword = document.getElementById('userOldPassword').value;
+            const newPassword = document.getElementById('userNewPassword').value;
+            const confirmPassword = document.getElementById('userConfirmPassword').value;
+
+            if (newPassword !== confirmPassword) {
+                alert('两次输入的新密码不一致');
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/auth/change-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ oldPassword, newPassword })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert('密码修改成功，请重新登录');
+                    document.getElementById('userChangePasswordForm').reset();
+                    bootstrap.Modal.getInstance(document.getElementById('userChangePasswordModal')).hide();
+                    logout();
+                } else {
+                    alert(data.message || '修改失败');
+                }
+            } catch (error) {
+                console.error('修改密码失败:', error);
+                alert('修改密码失败，请重试');
+            }
+        }
+
         // 退出登录
         function logout() {
             localStorage.clear();
             window.location.href = '/login.html';
         }
 
+        // 显示/隐藏单价输入框
+        document.getElementById('operationType').addEventListener('change', function() {
+            const unitPriceGroup = document.getElementById('unitPriceGroup');
+            const unitPriceInput = document.getElementById('unitPrice');
+            
+            if (this.value === 'in') {
+                unitPriceGroup.style.display = 'block';
+                unitPriceInput.required = true;
+            } else {
+                unitPriceGroup.style.display = 'none';
+                unitPriceInput.required = false;
+                unitPriceInput.value = '';
+            }
+        });
+
         // 页面初始化
         document.addEventListener('DOMContentLoaded', () => {
             // 检查登录状态
             if (!checkAuth()) return;
+
+            // 检查用户角色
+            const role = localStorage.getItem('role');
+            if (role === 'admin') {
+                window.location.href = '/admin.html';
+                return;
+            }
 
             // 显示用户名
             const username = localStorage.getItem('username');
@@ -165,7 +330,12 @@
                 }
             }
 
-            // 添加退出登录事件监听
+            // 添加事件监听器
+            const operationForm = document.getElementById('operationForm');
+            if (operationForm) {
+                operationForm.addEventListener('submit', submitOperation);
+            }
+
             const logoutBtn = document.getElementById('logoutBtn');
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', logout);
