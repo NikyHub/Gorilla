@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>库存管理系统</title>
     <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
-    <!-- 添加加载状态的样式 -->
     <style>
         .loading {
             opacity: 0.5;
@@ -24,15 +23,119 @@
     </style>
 </head>
 <body>
-    <!-- 添加加载指示器 -->
     <div class="loading-spinner">
         <div class="spinner-border text-primary" role="status">
             <span class="visually-hidden">加载中...</span>
         </div>
     </div>
 
-    <!-- 其他 HTML 部分保持不变 -->
-        <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <img src="/images/logo.webp" alt="Logo" style="height: 50px;">
+            <div>
+                <span id="userInfo" class="me-3"></span>
+                <button class="btn btn-info me-2" data-bs-toggle="modal" data-bs-target="#userChangePasswordModal">修改密码</button>
+                <button id="logoutBtn" class="btn btn-danger">退出登录</button>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- 库存列表 -->
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">库存列表</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>商品编号</th>
+                                        <th>商品名称</th>
+                                        <th>当前库存</th>
+                                        <th>库存预警</th>
+                                        <th>入库总额</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inventoryList"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 操作面板 -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">操作面板</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="operationForm">
+                            <div class="mb-3">
+                                <label class="form-label">选择商品</label>
+                                <select class="form-select" id="itemSelect" required></select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">操作类型</label>
+                                <select class="form-select" id="operationType" required>
+                                    <option value="in">入库</option>
+                                    <option value="out">出库</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">数量</label>
+                                <input type="number" class="form-control" id="quantity" required min="1">
+                            </div>
+                            <div class="mb-3" id="unitPriceGroup">
+                                <label class="form-label">单价 (元)</label>
+                                <input type="number" class="form-control" id="unitPrice" step="0.01" min="0">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">备注</label>
+                                <input type="text" class="form-control" id="remark">
+                            </div>
+                            <button type="submit" class="btn btn-primary">提交</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+        <!-- 修改密码模态框 -->
+    <div class="modal fade" id="userChangePasswordModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">修改密码</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="userChangePasswordForm">
+                        <div class="mb-3">
+                            <label class="form-label">原密码</label>
+                            <input type="password" class="form-control" id="userOldPassword" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">新密码</label>
+                            <input type="password" class="form-control" id="userNewPassword" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">确认新密码</label>
+                            <input type="password" class="form-control" id="userConfirmPassword" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="changeUserPassword()">确认修改</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
         // 设置加载状态
         function setLoading(isLoading) {
@@ -60,8 +163,7 @@
                 console.error('无效的库存数据');
                 return;
             }
-            
-            inventory.forEach(item => {
+                        inventory.forEach(item => {
                 const tr = document.createElement('tr');
                 const isLow = Number(item.current_stock) <= Number(item.warning_value);
                 
@@ -69,15 +171,7 @@
                 if (item.total_value != null) {
                     const value = Number(item.total_value);
                     if (!isNaN(value)) {
-                        totalValueDisplay = value.toString();
-                        if (!totalValueDisplay.includes('.')) {
-                            totalValueDisplay += '.00';
-                        } else {
-                            const parts = totalValueDisplay.split('.');
-                            if (parts[1].length === 1) {
-                                totalValueDisplay += '0';
-                            }
-                        }
+                        totalValueDisplay = value.toFixed(2);
                     }
                 }
 
@@ -92,7 +186,7 @@
             });
         }
 
-        // 更新商品选择下拉框 - 保留当前选中的值
+        // 更新商品选择下拉框
         function updateItemSelect(inventory) {
             const select = document.getElementById('itemSelect');
             if (!select) return;
@@ -143,8 +237,7 @@
                 setLoading(false);
             }
         }
-
-        // 提交操作 - 添加更多验证
+                // 提交操作
         async function submitOperation(e) {
             e.preventDefault();
             
@@ -182,12 +275,9 @@
                 }
 
                 // 入库时验证单价
-                if (operationType === 'in') {
-                    const price = parseFloat(unitPrice);
-                    if (!price || price <= 0) {
-                        alert('请输入有效的单价');
-                        return;
-                    }
+                if (operationType === 'in' && (!unitPrice || parseFloat(unitPrice) <= 0)) {
+                    alert('请输入有效的单价');
+                    return;
                 }
 
                 setLoading(true);
@@ -225,73 +315,113 @@
                 setLoading(false);
             }
         }
+                // 修改密码
+        async function changeUserPassword() {
+            const oldPassword = document.getElementById('userOldPassword').value;
+            const newPassword = document.getElementById('userNewPassword').value;
+            const confirmPassword = document.getElementById('userConfirmPassword').value;
 
-        // 其他函数保持不变
-        // ... changeUserPassword, logout 函数保持不变 ...
-
-        // 显示/隐藏单价输入框
-        document.getElementById('operationType').addEventListener('change', function() {
-            const unitPriceGroup = document.getElementById('unitPriceGroup');
-            const unitPriceInput = document.getElementById('unitPrice');
-            
-            if (this.value === 'in') {
-                unitPriceGroup.style.display = 'block';
-                unitPriceInput.required = true;
-            } else {
-                unitPriceGroup.style.display = 'none';
-                unitPriceInput.required = false;
-                unitPriceInput.value = '';
-            }
-        });
-
-        // 页面初始化 - 优化刷新逻辑
-        document.addEventListener('DOMContentLoaded', () => {
-            // 检查登录状态
-            if (!checkAuth()) return;
-
-            // 检查用户角色
-            const role = localStorage.getItem('role');
-            if (role === 'admin') {
-                window.location.href = '/admin.html';
+            if (newPassword !== confirmPassword) {
+                alert('两次输入的新密码不一致');
                 return;
             }
 
-            // 显示用户名
-            const username = localStorage.getItem('username');
-            if (username) {
-                const userInfo = document.getElementById('userInfo');
-                if (userInfo) {
-                    userInfo.textContent = `用户: ${username}`;
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/auth/change-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ oldPassword, newPassword })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert('密码修改成功，请重新登录');
+                    document.getElementById('userChangePasswordForm').reset();
+                    bootstrap.Modal.getInstance(document.getElementById('userChangePasswordModal')).hide();
+                    logout();
+                } else {
+                    alert(data.message || '修改失败');
                 }
+            } catch (error) {
+                console.error('修改密码失败:', error);
+                alert('修改密码失败，请重试');
+            }
+        }
+
+        // 退出登录
+        function logout() {
+            localStorage.clear();
+            window.location.href = '/login.html';
+        }
+
+        // 页面初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化操作类型变化监听
+            const operationType = document.getElementById('operationType');
+            if (operationType) {
+                operationType.addEventListener('change', function() {
+                    const unitPriceGroup = document.getElementById('unitPriceGroup');
+                    const unitPriceInput = document.getElementById('unitPrice');
+                    
+                    if (this.value === 'in') {
+                        unitPriceGroup.style.display = 'block';
+                        unitPriceInput.required = true;
+                    } else {
+                        unitPriceGroup.style.display = 'none';
+                        unitPriceInput.required = false;
+                        unitPriceInput.value = '';
+                    }
+                });
             }
 
-            // 添加事件监听器
-            const operationForm = document.getElementById('operationForm');
-            if (operationForm) {
-                operationForm.addEventListener('submit', submitOperation);
-            }
-
-            const logoutBtn = document.getElementById('logoutBtn');
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', logout);
-            }
-
-            // 初始加载
-            loadInventory();
-
-            // 优化的定时刷新逻辑
-            let lastOperation = Date.now();
-            setInterval(() => {
-                // 如果距离上次操作超过5秒才刷新
-                if (Date.now() - lastOperation > 5000) {
-                    loadInventory();
+            // 检查登录状态并加载数据
+            if (checkAuth()) {
+                const role = localStorage.getItem('role');
+                if (role === 'admin') {
+                    window.location.href = '/admin.html';
+                    return;
                 }
-            }, 5000);
 
-            // 记录操作时间
-            operationForm.addEventListener('submit', () => {
-                lastOperation = Date.now();
-            });
+                const username = localStorage.getItem('username');
+                if (username) {
+                    const userInfo = document.getElementById('userInfo');
+                    if (userInfo) {
+                        userInfo.textContent = `用户: ${username}`;
+                    }
+                }
+
+                // 初始化表单提交
+                const operationForm = document.getElementById('operationForm');
+                if (operationForm) {
+                    operationForm.addEventListener('submit', submitOperation);
+                }
+
+                // 初始化退出按钮
+                const logoutBtn = document.getElementById('logoutBtn');
+                if (logoutBtn) {
+                    logoutBtn.addEventListener('click', logout);
+                }
+
+                // 加载初始数据
+                loadInventory();
+
+                // 设置定时刷新
+                let lastOperation = Date.now();
+                setInterval(() => {
+                    if (Date.now() - lastOperation > 5000) {
+                        loadInventory();
+                    }
+                }, 5000);
+
+                // 记录操作时间
+                operationForm.addEventListener('submit', () => {
+                    lastOperation = Date.now();
+                });
+            }
         });
     </script>
 </body>
