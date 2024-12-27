@@ -315,19 +315,33 @@
         }
 
         // 删除商品
-        async function deleteProduct(id) {
-            if (!confirm('确定要删除这个商品吗？')) return;
-            
-            try {
-                await fetchWithAuth(`/inventory/delete/${id}`, {
-                    method: 'DELETE'
-                });
-                alert('删除成功');
-                loadInventory();
-            } catch (error) {
-                alert('删除失败：' + error.message);
+       // 在 admin.html 中修改删除商品的函数
+async function deleteProduct(id) {
+    if (!confirm('确定要删除这个商品吗？')) {
+        return;
+    }
+
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`/inventory/items/${id}`, {  // 修改这里的URL
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
             }
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            alert('删除成功');
+            loadInventory(); // 重新加载列表
+        } else {
+            throw new Error(data.message || '删除失败');
         }
+    } catch (error) {
+        console.error('删除商品失败:', error);
+        alert('删除商品失败，请重试');
+    }
+}
 
         // 加载用户列表
         async function loadUsers() {
