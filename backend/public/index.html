@@ -238,8 +238,8 @@ async function loadInventory() {
     }
 }
                 // 提交操作
-      // 修改 submitOperation 函数
-       async function submitOperation(e) {
+    // 修改 submitOperation 函数
+async function submitOperation(e) {
     e.preventDefault();
     
     try {
@@ -266,19 +266,20 @@ async function loadInventory() {
             item_id: parseInt(itemId),
             operation_type: operationType,
             quantity: quantity,
-            unit_price: operationType === 'in' ? parseFloat(unitPrice) || 0 : undefined,
             remark: remark || ''
         };
 
-        // 入库时验证单价
-        if (operationType === 'in' && (!requestData.unit_price || requestData.unit_price <= 0)) {
-            alert('请输入有效的单价');
-            return;
+        // 只在入库时添加单价
+        if (operationType === 'in') {
+            const price = parseFloat(unitPrice);
+            if (!price || price <= 0) {
+                alert('请输入有效的单价');
+                return;
+            }
+            requestData.unit_price = price;
         }
 
         setLoading(true);
-
-        console.log('发送数据:', requestData); // 调试日志
 
         const response = await fetch('/inventory/operate', {
             method: 'POST',
@@ -290,9 +291,9 @@ async function loadInventory() {
         });
 
         const data = await response.json();
-        console.log('服务器响应:', data); // 调试日志
 
-        if (response.ok && data.success) {
+        // 修改这里的判断逻辑
+        if (data.success) {  // 只检查 data.success
             alert('操作成功');
             document.getElementById('operationForm').reset();
             await loadInventory();
