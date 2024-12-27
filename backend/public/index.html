@@ -267,10 +267,11 @@ async function submitOperation(e) {
             item_id: parseInt(itemId),
             operation_type: operationType,
             quantity: quantity,
-            remark: remark || ''
+            remark: remark || '',
+            unit_price: 0  // 默认值为 0
         };
 
-        // 只在入库时添加单价
+        // 入库时验证并设置单价
         if (operationType === 'in') {
             const price = parseFloat(unitPrice);
             if (!price || price <= 0) {
@@ -280,7 +281,7 @@ async function submitOperation(e) {
             requestData.unit_price = price;
         }
 
-        console.log('发送请求数据:', requestData); // 调试日志
+        console.log('发送请求数据:', requestData);
 
         const response = await fetch('/inventory/operate', {
             method: 'POST',
@@ -291,40 +292,29 @@ async function submitOperation(e) {
             body: JSON.stringify(requestData)
         });
 
-        // 不管状态码如何，都尝试读取响应
         const responseText = await response.text();
-        console.log('服务器响应:', responseText); // 调试日志
+        console.log('服务器响应:', responseText);
 
-        // 尝试解析 JSON
         let data;
         try {
             data = JSON.parse(responseText);
         } catch (e) {
             console.log('JSON解析失败，使用原始响应');
-            // 如果响应文本包含某些关键词，认为是成功
             if (responseText.includes('success') || responseText.includes('操作成功')) {
                 data = { success: true };
             }
         }
 
-        // 根据响应处理结果
         if (data && data.success) {
             alert('操作成功');
             document.getElementById('operationForm').reset();
             await loadInventory();
         } else {
-            // 如果操作可能成功但返回格式不标准
-            if (responseText.includes('success') || responseText.includes('操作成功')) {
-                alert('操作成功');
-                document.getElementById('operationForm').reset();
-                await loadInventory();
-            } else {
-                throw new Error(data?.message || '操作失败，请重试');
-            }
+            throw new Error(data?.message || '操作失败，请重试');
         }
     } catch (error) {
-        console.error('完整错误信息:', error); // 调试日志
-        alert('操作失败，请重试');
+        console.error('操作失败:', error);
+        alert(error.message || '操作失败，请重试');
     } finally {
         setLoading(false);
     }
