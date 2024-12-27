@@ -108,23 +108,49 @@ router.post('/add', verifyToken, async (req, res) => {
     }
 });
 
-// 删除商品
-router.delete('/delete/:id', verifyToken, async (req, res) => {
+
+// 删除商品路由
+router.delete('/items/:id', async (req, res) => {
     try {
         const { id } = req.params;
+        
+        // 开启事务
+        const client = await pool.connect();
+        
+        try {
+            await client.query('BEGIN'); // 开始事务
 
-        await pool.query('DELETE FROM items WHERE id = $1', [id]);
-        await pool.query('DELETE FROM operation_history WHERE item_id = $1', [id]);
+            // 1. 首先删除该商品的所有操作历史
+            await client.query(
+                'DELETE FROM operation_history WHERE item_id = $1',
+                [id]
+            );
+            
+            // 2. 然后删除商品
+            await client.query(
+                'DELETE FROM items WHERE id = $1',
+                [id]
+            );
 
-        res.json({
-            success: true,
-            message: '商品删除成功'
-        });
+            await client.query('COMMIT'); // 提交事务
+            
+            res.json({ 
+                success: true,
+                message: '商品删除成功'
+            });
+
+        } catch (error) {
+            await client.query('ROLLBACK'); // 如果出错，回滚事务
+            throw error;
+        } finally {
+            client.release(); // 释放连接
+        }
+
     } catch (error) {
         console.error('删除商品失败:', error);
         res.status(500).json({
             success: false,
-            message: '删除商品失败'
+            message: '删除商品失败: ' + error.message
         });
     }
 });
