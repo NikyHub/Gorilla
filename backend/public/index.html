@@ -38,8 +38,7 @@
                 <button id="logoutBtn" class="btn btn-danger">退出登录</button>
             </div>
         </div>
-
-        <div class="row">
+                <div class="row">
             <!-- 库存列表 -->
             <div class="col-md-8">
                 <div class="card">
@@ -151,8 +150,7 @@
             }
             return true;
         }
-
-        // 更新库存表格
+                // 更新库存表格
         function updateInventoryTable(inventory) {
             const tbody = document.getElementById('inventoryList');
             if (!tbody) return;
@@ -163,7 +161,8 @@
                 console.error('无效的库存数据');
                 return;
             }
-                        inventory.forEach(item => {
+            
+            inventory.forEach(item => {
                 const tr = document.createElement('tr');
                 const isLow = Number(item.current_stock) <= Number(item.warning_value);
                 
@@ -249,7 +248,7 @@
                 const unitPrice = document.getElementById('unitPrice').value;
                 const remark = document.getElementById('remark').value;
 
-                // 添加验证
+                // 基础验证
                 if (!itemId) {
                     alert('请选择商品');
                     return;
@@ -260,24 +259,22 @@
                     return;
                 }
 
-                // 出库时检查库存
-                if (operationType === 'out') {
-                    const select = document.getElementById('itemSelect');
-                    const option = select.selectedOptions[0];
-                    const stockMatch = option.textContent.match(/库存: (\d+)/);
-                    if (stockMatch) {
-                        const currentStock = parseInt(stockMatch[1]);
-                        if (quantity > currentStock) {
-                            alert('出库数量不能大于当前库存');
-                            return;
-                        }
-                    }
-                }
+                // 构建请求数据
+                const requestData = {
+                    item_id: parseInt(itemId),  // 确保 item_id 是数字
+                    operation_type: operationType,
+                    quantity: quantity,
+                    remark: remark || ''
+                };
 
-                // 入库时验证单价
-                if (operationType === 'in' && (!unitPrice || parseFloat(unitPrice) <= 0)) {
-                    alert('请输入有效的单价');
-                    return;
+                // 只在入库时添加单价
+                if (operationType === 'in') {
+                    const price = parseFloat(unitPrice);
+                    if (!price || price <= 0) {
+                        alert('请输入有效的单价');
+                        return;
+                    }
+                    requestData.unit_price = price;
                 }
 
                 setLoading(true);
@@ -287,35 +284,27 @@
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({
-                        item_id: itemId,
-                        operation_type: operationType,
-                        quantity: quantity,
-                        unit_price: operationType === 'in' ? parseFloat(unitPrice) : null,
-                        remark: remark || ''
-                    })
+                    body: JSON.stringify(requestData)
                 });
 
                 const data = await response.json();
-                if (!response.ok) {
-                    throw new Error(data.message || '操作失败');
-                }
-
-                if (data.success) {
+                
+                if (response.ok && data.success) {
                     alert('操作成功');
                     document.getElementById('operationForm').reset();
                     await loadInventory();
                 } else {
-                    alert(data.message || '操作失败');
+                    throw new Error(data.message || '操作失败');
                 }
             } catch (error) {
                 console.error('操作失败:', error);
-                alert('操作失败: ' + (error.message || '请重试'));
+                alert(error.message || '操作失败，请重试');
             } finally {
                 setLoading(false);
             }
         }
-                // 修改密码
+
+        // 修改密码
         async function changeUserPassword() {
             const oldPassword = document.getElementById('userOldPassword').value;
             const newPassword = document.getElementById('userNewPassword').value;
@@ -351,8 +340,7 @@
                 alert('修改密码失败，请重试');
             }
         }
-
-        // 退出登录
+                // 退出登录
         function logout() {
             localStorage.clear();
             window.location.href = '/login.html';
@@ -394,10 +382,30 @@
                     }
                 }
 
+                let isOperating = false;  // 添加操作状态标志
+                let refreshTimeout = null;
+
+                // 修改加载函数
+                async function refreshInventory() {
+                    if (!isOperating) {
+                        await loadInventory();
+                    }
+                    // 设置下一次刷新
+                    refreshTimeout = setTimeout(refreshInventory, 5000);
+                }
+
                 // 初始化表单提交
                 const operationForm = document.getElementById('operationForm');
                 if (operationForm) {
-                    operationForm.addEventListener('submit', submitOperation);
+                    operationForm.addEventListener('submit', async (e) => {
+                        isOperating = true;  // 设置操作状态
+                        clearTimeout(refreshTimeout);  // 清除当前的刷新计时器
+                        
+                        await submitOperation(e);
+                        
+                        isOperating = false;  // 重置操作状态
+                        refreshTimeout = setTimeout(refreshInventory, 5000);  // 重新开始刷新计时
+                    });
                 }
 
                 // 初始化退出按钮
@@ -406,20 +414,12 @@
                     logoutBtn.addEventListener('click', logout);
                 }
 
-                // 加载初始数据
-                loadInventory();
+                // 开始初始刷新循环
+                refreshInventory();
 
-                // 设置定时刷新
-                let lastOperation = Date.now();
-                setInterval(() => {
-                    if (Date.now() - lastOperation > 5000) {
-                        loadInventory();
-                    }
-                }, 5000);
-
-                // 记录操作时间
-                operationForm.addEventListener('submit', () => {
-                    lastOperation = Date.now();
+                // 页面卸载时清理
+                window.addEventListener('beforeunload', () => {
+                    clearTimeout(refreshTimeout);
                 });
             }
         });
