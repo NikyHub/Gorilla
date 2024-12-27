@@ -208,101 +208,105 @@
             }
         }
 
-        // 加载库存列表
-        async function loadInventory() {
-            if (!checkAuth()) return;
-
-            try {
-                setLoading(true);
-                const token = localStorage.getItem('token');
-                const response = await fetch('/inventory/list', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error('获取库存列表失败');
-                }
-
-                const data = await response.json();
-                if (data && data.inventory) {
-                    updateInventoryTable(data.inventory);
-                    updateItemSelect(data.inventory);
-                }
-            } catch (error) {
-                console.error('加载库存失败:', error);
-            } finally {
-                setLoading(false);
+        // 修改 loadInventory 函数，添加防抖
+let loadingInventory = false;
+async function loadInventory() {
+    if (loadingInventory) return; // 如果正在加载，直接返回
+    
+    try {
+        loadingInventory = true;
+        const token = localStorage.getItem('token');
+        const response = await fetch('/inventory/list', {
+            headers: {
+                'Authorization': `Bearer ${token}`
             }
+        });
+
+        if (!response.ok) {
+            throw new Error('获取库存列表失败');
         }
+
+        const data = await response.json();
+        if (data && data.inventory) {
+            updateInventoryTable(data.inventory);
+            updateItemSelect(data.inventory);
+        }
+    } catch (error) {
+        console.error('加载库存失败:', error);
+    } finally {
+        loadingInventory = false;
+    }
+}
                 // 提交操作
-        async function submitOperation(e) {
-            e.preventDefault();
-            
-            try {
-                const token = localStorage.getItem('token');
-                const itemId = document.getElementById('itemSelect').value;
-                const operationType = document.getElementById('operationType').value;
-                const quantity = parseInt(document.getElementById('quantity').value);
-                const unitPrice = document.getElementById('unitPrice').value;
-                const remark = document.getElementById('remark').value;
+      // 修改 submitOperation 函数
+       async function submitOperation(e) {
+    e.preventDefault();
+    
+    try {
+        const token = localStorage.getItem('token');
+        const itemId = document.getElementById('itemSelect').value;
+        const operationType = document.getElementById('operationType').value;
+        const quantity = parseInt(document.getElementById('quantity').value);
+        const unitPrice = document.getElementById('unitPrice').value;
+        const remark = document.getElementById('remark').value;
 
-                // 基础验证
-                if (!itemId) {
-                    alert('请选择商品');
-                    return;
-                }
-
-                if (!quantity || quantity <= 0) {
-                    alert('请输入有效的数量');
-                    return;
-                }
-
-                // 构建请求数据
-                const requestData = {
-                    item_id: parseInt(itemId),  // 确保 item_id 是数字
-                    operation_type: operationType,
-                    quantity: quantity,
-                    remark: remark || ''
-                };
-
-                // 只在入库时添加单价
-                if (operationType === 'in') {
-                    const price = parseFloat(unitPrice);
-                    if (!price || price <= 0) {
-                        alert('请输入有效的单价');
-                        return;
-                    }
-                    requestData.unit_price = price;
-                }
-
-                setLoading(true);
-                const response = await fetch('/inventory/operate', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify(requestData)
-                });
-
-                const data = await response.json();
-                
-                if (response.ok && data.success) {
-                    alert('操作成功');
-                    document.getElementById('operationForm').reset();
-                    await loadInventory();
-                } else {
-                    throw new Error(data.message || '操作失败');
-                }
-            } catch (error) {
-                console.error('操作失败:', error);
-                alert(error.message || '操作失败，请重试');
-            } finally {
-                setLoading(false);
-            }
+        // 基础验证
+        if (!itemId) {
+            alert('请选择商品');
+            return;
         }
+
+        if (!quantity || quantity <= 0) {
+            alert('请输入有效的数量');
+            return;
+        }
+
+        // 构建请求数据
+        const requestData = {
+            item_id: parseInt(itemId),
+            operation_type: operationType,
+            quantity: quantity,
+            unit_price: operationType === 'in' ? parseFloat(unitPrice) || 0 : undefined,
+            remark: remark || ''
+        };
+
+        // 入库时验证单价
+        if (operationType === 'in' && (!requestData.unit_price || requestData.unit_price <= 0)) {
+            alert('请输入有效的单价');
+            return;
+        }
+
+        setLoading(true);
+
+        console.log('发送数据:', requestData); // 调试日志
+
+        const response = await fetch('/inventory/operate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(requestData)
+        });
+
+        const data = await response.json();
+        console.log('服务器响应:', data); // 调试日志
+
+        if (response.ok && data.success) {
+            alert('操作成功');
+            document.getElementById('operationForm').reset();
+            await loadInventory();
+        } else {
+            throw new Error(data.message || '操作失败');
+        }
+    } catch (error) {
+        console.error('操作失败:', error);
+        alert(error.message || '操作失败，请重试');
+    } finally {
+        setLoading(false);
+    }
+}
+
 
         // 修改密码
         async function changeUserPassword() {
@@ -346,25 +350,49 @@
             window.location.href = '/login.html';
         }
 
-        // 页面初始化
-        document.addEventListener('DOMContentLoaded', function() {
-            // 初始化操作类型变化监听
-            const operationType = document.getElementById('operationType');
-            if (operationType) {
-                operationType.addEventListener('change', function() {
-                    const unitPriceGroup = document.getElementById('unitPriceGroup');
-                    const unitPriceInput = document.getElementById('unitPrice');
-                    
-                    if (this.value === 'in') {
-                        unitPriceGroup.style.display = 'block';
-                        unitPriceInput.required = true;
-                    } else {
-                        unitPriceGroup.style.display = 'none';
-                        unitPriceInput.required = false;
-                        unitPriceInput.value = '';
-                    }
-                });
+      // 修改页面初始化部分
+document.addEventListener('DOMContentLoaded', function() {
+    // ... 其他初始化代码保持不变 ...
+
+    if (checkAuth()) {
+        // ... 用户角色和用户名显示代码保持不变 ...
+
+        // 初始化表单提交
+        const operationForm = document.getElementById('operationForm');
+        if (operationForm) {
+            operationForm.addEventListener('submit', submitOperation);
+        }
+
+        // 初始化退出按钮
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', logout);
+        }
+
+        // 首次加载数据
+        loadInventory();
+
+        // 使用变量跟踪最后一次操作时间
+        let lastOperationTime = Date.now();
+
+        // 定义刷新函数
+        const refresh = async () => {
+            const now = Date.now();
+            // 如果距离上次操作超过5秒，才进行刷新
+            if (now - lastOperationTime >= 5000) {
+                await loadInventory();
             }
+        };
+
+        // 设置定时刷新，但间隔更长
+        setInterval(refresh, 10000); // 改为10秒刷新一次
+
+        // 在表单提交时更新最后操作时间
+        operationForm.addEventListener('submit', () => {
+            lastOperationTime = Date.now();
+        });
+    }
+});
 
             // 检查登录状态并加载数据
             if (checkAuth()) {
