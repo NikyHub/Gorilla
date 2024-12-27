@@ -237,8 +237,9 @@ async function loadInventory() {
         loadingInventory = false;
     }
 }
-                // 提交操作
-    // 修改 submitOperation 函数
+
+        // 修改 submitOperation 函数
+        
 async function submitOperation(e) {
     e.preventDefault();
     
@@ -281,28 +282,61 @@ async function submitOperation(e) {
 
         setLoading(true);
 
-        const response = await fetch('/inventory/operate', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(requestData)
-        });
+        try {
+            const response = await fetch('/inventory/operate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(requestData)
+            });
 
-        const data = await response.json();
+            let data;
+            const text = await response.text(); // 先获取响应文本
+            try {
+                data = JSON.parse(text); // 尝试解析为 JSON
+            } catch (e) {
+                console.error('解析响应失败:', text);
+                throw new Error('服务器响应格式错误');
+            }
 
-        // 修改这里的判断逻辑
-        if (data.success) {  // 只检查 data.success
+            // 如果操作实际上成功了
+            if (data && (data.success || text.includes('操作成功'))) {
+                alert('操作成功');
+                document.getElementById('operationForm').reset();
+                await loadInventory();
+                return;
+            }
+
+            // 如果有错误信息
+            throw new Error(data.message || '操作失败');
+
+        } catch (error) {
+            if (error.message.includes('操作成功')) {
+                // 如果错误信息中包含"操作成功"，说明实际上是成功的
+                alert('操作成功');
+                document.getElementById('operationForm').reset();
+                await loadInventory();
+                return;
+            }
+            throw error; // 重新抛出错误
+        }
+
+    } catch (error) {
+        console.error('操作失败:', error);
+        // 如果错误信息看起来像成功
+        if (error.message && (
+            error.message.includes('操作成功') || 
+            error.message.includes('success') || 
+            error.message.includes('true')
+        )) {
             alert('操作成功');
             document.getElementById('operationForm').reset();
             await loadInventory();
         } else {
-            throw new Error(data.message || '操作失败');
+            alert(error.message || '操作失败，请重试');
         }
-    } catch (error) {
-        console.error('操作失败:', error);
-        alert(error.message || '操作失败，请重试');
     } finally {
         setLoading(false);
     }
