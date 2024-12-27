@@ -211,37 +211,57 @@
             return data;
         }
 
-        // 加载库存列表
-        async function loadInventory() {
-            try {
-                const data = await fetchWithAuth('/inventory/list');
-                const tbody = document.getElementById('inventoryList');
-                tbody.innerHTML = '';
-                
-                data.inventory.forEach(item => {
-                    const tr = document.createElement('tr');
-                    const isLow = item.current_stock <= item.warning_value;
-                    tr.innerHTML = `
-                        <td>${item.id}</td>
-                        <td>${item.name}</td>
-                        <td class="${isLow ? 'text-danger fw-bold' : ''}">${item.current_stock || 0}</td>
-                        <td>${item.warning_value}</td>
-                        <td>¥ ${(item.total_value || 0).toFixed(2)}</td>
-                        <td>
-                            <button class="btn btn-danger btn-sm delete-btn" data-id="${item.id}">删除</button>
-                        </td>
-                    `;
-                    
-                    // 添加删除按钮的事件监听器
-                    const deleteBtn = tr.querySelector('.delete-btn');
-                    deleteBtn.addEventListener('click', () => deleteProduct(item.id));
-                    
-                    tbody.appendChild(tr);
-                });
-            } catch (error) {
-                console.error('加载库存列表失败:', error);
+      // 加载库存列表
+       async function loadInventory() {
+    try {
+        const data = await fetchWithAuth('/inventory/list');
+        const tbody = document.getElementById('inventoryList');
+        tbody.innerHTML = '';
+        
+        data.inventory.forEach(item => {
+            const tr = document.createElement('tr');
+            const isLow = item.current_stock <= item.warning_value;
+            
+            // 处理 total_value
+            let totalValueDisplay = '0.00';
+            if (item.total_value !== null && item.total_value !== undefined) {
+                const value = Number(item.total_value);
+                if (!isNaN(value)) {
+                    // 使用 Number 对象的 toString 方法
+                    totalValueDisplay = value.toString();
+                    // 确保有两位小数
+                    if (!totalValueDisplay.includes('.')) {
+                        totalValueDisplay += '.00';
+                    } else {
+                        const parts = totalValueDisplay.split('.');
+                        if (parts[1].length === 1) {
+                            totalValueDisplay += '0';
+                        }
+                    }
+                }
             }
-        }
+            
+            tr.innerHTML = `
+                <td>${item.id}</td>
+                <td>${item.name}</td>
+                <td class="${isLow ? 'text-danger fw-bold' : ''}">${item.current_stock || 0}</td>
+                <td>${item.warning_value}</td>
+                <td>¥ ${totalValueDisplay}</td>
+                <td>
+                    <button class="btn btn-danger btn-sm delete-btn" data-id="${item.id}">删除</button>
+                </td>
+            `;
+            
+            // 添加删除按钮的事件监听器
+            const deleteBtn = tr.querySelector('.delete-btn');
+            deleteBtn.addEventListener('click', () => deleteProduct(item.id));
+            
+            tbody.appendChild(tr);
+        });
+    } catch (error) {
+        console.error('加载库存列表失败:', error);
+    }
+}
 
         // 加载操作历史
         async function loadOperationHistory() {
