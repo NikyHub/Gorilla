@@ -45,68 +45,30 @@ async function loadInventory() {
         console.log('服务器返回的数据:', data); // 用于调试
         
         const tbody = document.getElementById('inventoryList');
-        if (!tbody) {
-            console.error('找不到库存列表元素');
-            return;
-        }
-        
         tbody.innerHTML = '';
         
-        if (!data || !data.inventory || !Array.isArray(data.inventory)) {
-            console.error('无效的数据格式:', data);
-            return;
-        }
-
         data.inventory.forEach(item => {
-            try {
-                const tr = document.createElement('tr');
-                
-                // 基础数据处理，添加默认值和类型转换
-                const id = item.id || '';
-                const name = item.name || '';
-                const currentStock = parseInt(item.current_stock || '0');
-                const warningValue = parseInt(item.warning_value || '0');
-                
-                // 金额处理
-                let totalValueDisplay = '0.00';
-                if (item.total_value) {
-                    const value = Number(item.total_value);
-                    if (!isNaN(value)) {
-                        totalValueDisplay = value.toString().includes('.') ? 
-                            value.toFixed(2) : value + '.00';
-                    }
-                }
-                
-                const isLow = currentStock <= warningValue;
-                
-                // 使用模板字符串构建行内容
-                tr.innerHTML = `
-                    <td>${id}</td>
-                    <td>${name}</td>
-                    <td class="${isLow ? 'text-danger fw-bold' : ''}">${currentStock}</td>
-                    <td>${warningValue}</td>
-                    <td>¥ ${totalValueDisplay}</td>
-                    <td>
-                        <button class="btn btn-danger btn-sm delete-btn" data-id="${id}">删除</button>
-                    </td>
-                `;
-                
-                // 添加删除按钮事件监听器
-                const deleteBtn = tr.querySelector('.delete-btn');
-                if (deleteBtn) {
-                    deleteBtn.addEventListener('click', () => deleteProduct(id));
-                }
-                
-                tbody.appendChild(tr);
-            } catch (itemError) {
-                console.error('处理单个商品数据时出错:', item, itemError);
-            }
+            const tr = document.createElement('tr');
+            const isLow = Number(item.current_stock) <= Number(item.warning_value);
+            
+            tr.innerHTML = `
+                <td>${item.id || ''}</td>
+                <td>${item.name || ''}</td>
+                <td class="${isLow ? 'text-danger fw-bold' : ''}">${item.current_stock || 0}</td>
+                <td>${item.warning_value || 0}</td>
+                <td>¥ ${item.total_value || '0.00'}</td>
+                <td>
+                    <button class="btn btn-danger btn-sm delete-btn" data-id="${item.id}">删除</button>
+                </td>
+            `;
+            
+            const deleteBtn = tr.querySelector('.delete-btn');
+            deleteBtn.addEventListener('click', () => deleteProduct(item.id));
+            
+            tbody.appendChild(tr);
         });
     } catch (error) {
         console.error('加载库存列表失败:', error);
-        if (error.stack) {
-            console.error('错误堆栈:', error.stack);
-        }
     }
 }
 
